@@ -1,0 +1,7 @@
+PACAS Version 2.00
+Release Date: 2024-01-04
+Changes:
+- Fixed async/sync handling in Flask routes
+- Improved database NULL parameter handling
+- Enhanced error handling and logging
+- Optimized combined search functionality 

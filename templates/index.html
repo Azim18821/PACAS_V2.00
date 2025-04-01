@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Find Your Dream Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="hero">
+        <h1>Find Your Dream Home</h1>
+        <p>Search homes across the UK with one easy platform</p>
+
+        <div class="search-form">
+            <div>
+                <label for="site">Source</label>
+                <select id="site" name="site" required>
+                    <option value="zoopla">Zoopla</option>
+                    <option value="rightmove">Rightmove</option>
+                    <option value="combined">Both Sites (Combined)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="location">Location</label>
+                <input id="location" placeholder="e.g. London, Manchester" />
+                <div id="location-error" class="validation-error"></div>
+            </div>
+
+            <div>
+                <label for="listing_type">Listing Type</label>
+                <select id="listing_type">
+                    <option value="sale">For Sale</option>
+                    <option value="rent">To Rent</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="min_price">Min Price</label>
+                <select id="min_price"></select>
+            </div>
+
+            <div>
+                <label for="max_price">Max Price</label>
+                <select id="max_price"></select>
+            </div>
+
+            <div>
+                <label for="min_beds">Min Beds</label>
+                <select id="min_beds">
+                    <option value="">Any</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5+</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="max_beds">Max Beds</label>
+                <select id="max_beds">
+                    <option value="">Any</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10+</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="keywords">Keywords</label>
+                <input id="keywords" placeholder="e.g. garden, garage" />
+            </div>
+
+            <div>
+                <label for="sort_by">Sort By</label>
+                <select id="sort_by">
+                    <option value="newest">Newest Listed</option>
+                    <option value="price_asc">Price (Low to High)</option>
+                    <option value="price_desc">Price (High to Low)</option>
+                    <option value="beds_desc">Bedrooms (High to Low)</option>
+                    <option value="beds_asc">Bedrooms (Low to High)</option>
+                    <option value="oldest">Oldest Listed</option>
+                    <option value="distance">Distance</option>
+                    <option value="reduced">Price Reduced</option>
+                    <option value="most_viewed">Most Viewed</option>
+                    <option value="most_reduced">Most Reduced</option>
+                </select>
+            </div>
+
+            <div class="button-wrapper">
+                <button id="searchButton" onclick="performSearch()">Search Properties</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="results-header">
+            <h2>🔎 Search Results</h2>
+            <span id="results-count"></span>
+        </div>
+        <div id="progress" style="display: none;"></div>
+        <div class="results-section">
+            <div id="results" class="results-grid"></div>
+            <button id="show-more" class="show-more-button" onclick="loadMoreResults()" style="display: none;">
+                Show More Listings
+            </button>
+        </div>
+        <div id="pagination"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About PACAS</h3>
+                <p>Your trusted platform for finding the perfect property across the UK. We aggregate listings from multiple sources to give you the most comprehensive property search experience.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#" onclick="scrollToTop()">Back to Top</a></li>
+                    <li><a href="#" onclick="showPrivacyPolicy()">Privacy Policy</a></li>
+                    <li><a href="#" onclick="showTerms()">Terms of Service</a></li>
+                    <li><a href="#" onclick="showContact()">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Property Sources</h3>
+                <ul>
+                    <li><a href="https://www.rightmove.co.uk" target="_blank">Rightmove</a></li>
+                    <li><a href="https://www.zoopla.co.uk" target="_blank">Zoopla</a></li>
+                    <li><a href="https://www.openrent.co.uk" target="_blank">OpenRent</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <div class="social-links">
+                    <a href="#" class="social-link" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-link" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 <strong>PACAS</strong>. All rights reserved.</p>
+            <p class="footer-version">Version 1.00</p>
+        </div>
+    </footer>
+
+    <!-- Add Font Awesome for social icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <style>
+        .validation-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .validation-error.show {
+            display: block;
+        }
+
+        .search-form input.error {
+            border-color: #dc3545;
+        }
+
+        .show-more-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .show-more-button:hover {
+            background-color: #0056b3;
+        }
+
+        .show-more-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='locationValidator.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
