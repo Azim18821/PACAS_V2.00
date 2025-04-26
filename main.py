@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, Response, redirect, 
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 import sqlite3
 from flask_bcrypt import Bcrypt
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from dotenv import load_dotenv
 from scrapers.zoopla import scrape_zoopla, scrape_zoopla_first_page, scrape_zoopla_page
 from scrapers.rightmove_scrape import scrape_rightmove_from_url
