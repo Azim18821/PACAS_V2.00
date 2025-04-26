@@ -296,13 +296,25 @@ class ScraperBot:
             logger.info(f"Bedrooms: {min_beds}-{max_beds}")
             if keywords:
                 logger.info(f"Keywords: {keywords}")
-            
-            # Check both caches concurrently
-            logger.info("[Combined] Checking both caches concurrently...")
-            rightmove_cached, zoopla_cached = await asyncio.gather(
-                asyncio.to_thread(
-                    self.db.get_cached_results,
-                    site="rightmove",
+
+            # Scrape both sites concurrently
+            logger.info("[Combined] Starting concurrent scraping...")
+            rightmove_results, zoopla_results = await asyncio.gather(
+                scrape_rightmove_from_url(
+                    get_final_rightmove_results_url(
+                        location=location,
+                        min_price=min_price,
+                        max_price=max_price,
+                        min_beds=min_beds,
+                        max_beds=max_beds,
+                        radius=self.radius,
+                        include_sold=self.include_sold,
+                        listing_type=listing_type,
+                        page=page
+                    ),
+                    page=page
+                ),
+                scrape_zoopla_first_page(
                     location=location,
                     min_price=min_price,
                     max_price=max_price,
@@ -311,15 +323,43 @@ class ScraperBot:
                     keywords=keywords,
                     listing_type=listing_type,
                     page_number=page
-                ),
-                asyncio.to_thread(
-                    self.db.get_cached_results,
-                    site="Zoopla",
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
+                )
+            )
+
+            # Process Rightmove results
+            rightmove_listings = rightmove_results.get("listings", []) if isinstance(rightmove_results, dict) else []
+            rightmove_total = len(rightmove_listings)
+
+            # Process Zoopla results
+            zoopla_listings, zoopla_total_pages = zoopla_results if isinstance(zoopla_results, tuple) else ([], 0)
+            zoopla_total = len(zoopla_listings)
+
+            # Combine all listings
+            combined_results = rightmove_listings + zoopla_listings
+
+            # Deduplicate results
+            combined_results = self.deduplicate_results(combined_results)
+
+            # Calculate site statistics
+            site_stats = {
+                "rightmove": {
+                    "total_found": rightmove_total,
+                    "processed": len(rightmove_listings)
+                },
+                "zoopla": {
+                    "total_found": zoopla_total,
+                    "processed": len(zoopla_listings)
+                }
+            }
+
+            return {
+                "listings": combined_results,
+                "site_stats": site_stats,
+                "total_found": len(combined_results),
+                "total_pages": max(rightmove_results.get("total_pages", 1), zoopla_total_pages),
+                "current_page": page,
+                "has_next_page": page < max(rightmove_results.get("total_pages", 1), zoopla_total_pages)
+            }_beds,
                     keywords=keywords,
                     listing_type=listing_type,
                     page_number=page
