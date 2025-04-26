@@ -20,7 +20,7 @@ def get_proxy_url(url):
     if not scraper_api_key:
         logger.error("[Scraper Bot] No SCRAPER_API_KEY found in environment variables")
         return url
-    
+
     proxy_url = f"http://api.scraperapi.com?api_key={scraper_api_key}&url={url}"
     return proxy_url
 
@@ -39,13 +39,13 @@ class ScraperBot:
         """Remove duplicate listings based on URL"""
         seen_urls = set()
         unique_listings = []
-        
+
         for listing in listings:
             url = listing.get('url', '')
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 unique_listings.append(listing)
-        
+
         logger.info(f"Deduplicated {len(listings)} listings to {len(unique_listings)} unique listings")
         return unique_listings
 
@@ -79,16 +79,16 @@ class ScraperBot:
                 sort_by=self.sort_by,
                 page=page
             )
-            
+
             if not url:
                 logger.error(f"[Rightmove] Failed to generate URL for {location}")
                 return None
 
             # Add random delay between requests
             await asyncio.sleep(random.uniform(2, 4))
-            
+
             results = scrape_rightmove_from_url(url, page=page)
-            
+
             if not self.has_valid_listings(results):
                 logger.warning(f"[Rightmove] No valid listings found for {location} on page {page}")
                 return None
@@ -120,7 +120,7 @@ class ScraperBot:
                 page_number=page,
                 results=results
             )
-            
+
             return results
 
         except Exception as e:
@@ -132,7 +132,7 @@ class ScraperBot:
         try:
             # Add random delay between requests
             await asyncio.sleep(random.uniform(2, 4))
-            
+
             if page == 1:
                 results, total_pages = await scrape_zoopla_first_page(
                     location=location,
@@ -184,7 +184,7 @@ class ScraperBot:
                 page_number=page,
                 results=structured_results
             )
-            
+
             return structured_results
 
         except Exception as e:
@@ -198,13 +198,13 @@ class ScraperBot:
         logger.info(f"Bedrooms: {min_beds}-{max_beds}")
         if keywords:
             logger.info(f"Keywords: {keywords}")
-        
+
         consecutive_empty = 0
         page = 1
-        
+
         while page <= self.max_pages:
             logger.info(f"\n[Scraper Bot] Scraping page {page}")
-            
+
             # Scrape both sites concurrently
             rightmove_task = self.scrape_rightmove(
                 location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords
@@ -212,28 +212,28 @@ class ScraperBot:
             zoopla_task = self.scrape_zoopla(
                 location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords
             )
-            
+
             rightmove_results, zoopla_results = await asyncio.gather(
                 rightmove_task, zoopla_task, return_exceptions=True
             )
-            
+
             # Check if both sites returned no results
             if not rightmove_results and not zoopla_results:
                 consecutive_empty += 1
                 logger.warning(f"[Scraper Bot] No results found on page {page} ({consecutive_empty}/{self.max_consecutive_empty})")
-                
+
                 if consecutive_empty >= self.max_consecutive_empty:
                     logger.info("[Scraper Bot] Stopping due to consecutive empty pages")
                     break
             else:
                 consecutive_empty = 0
-                
+
                 # Check if we've reached the last page for both sites
                 if (rightmove_results and rightmove_results.get("is_complete")) and \
                    (zoopla_results and zoopla_results.get("is_complete")):
                     logger.info("[Scraper Bot] Reached last page for both sites")
                     break
-            
+
             # Add longer delay between pages
             await asyncio.sleep(random.uniform(5, 8))
             page += 1
@@ -274,7 +274,7 @@ class ScraperBot:
                             logger.info(f"Price: £{min_price} - £{max_price}")
                             logger.info(f"Beds: {min_beds}-{max_beds}")
                             logger.info(f"Keyword: {keyword}")
-                            
+
                             await self.scrape_all_pages(
                                 location=location,
                                 min_price=min_price,
@@ -360,115 +360,8 @@ class ScraperBot:
                 "current_page": page,
                 "has_next_page": page < max(rightmove_results.get("total_pages", 1), zoopla_total_pages)
             }
-            
-            combined_results = []
-            site_stats = {}
-            
-            # Use cached results if available
-            if rightmove_cached and isinstance(rightmove_cached, dict) and "listings" in rightmove_cached:
-                logger.info("Found Rightmove results in cache")
-                combined_results.extend(rightmove_cached["listings"])
-                site_stats['rightmove'] = len(rightmove_cached["listings"])
-            else:
-                logger.info("No Rightmove results in cache, will scrape")
-                site_stats['rightmove'] = 0
-            
-            if zoopla_cached and isinstance(zoopla_cached, dict) and "listings" in zoopla_cached:
-                logger.info("Found Zoopla results in cache")
-                combined_results.extend(zoopla_cached["listings"])
-                site_stats['zoopla'] = len(zoopla_cached["listings"])
-            else:
-                logger.info("No Zoopla results in cache, will scrape")
-                site_stats['zoopla'] = 0
-            
-            # If we have results from both sites, return them
-            if combined_results:
-                logger.info("Returning combined results from cache")
-                return {
-                    "listings": combined_results,
-                    "site_stats": site_stats,
-                    "total_found": len(combined_results),
-                    "total_pages": 1,
-                    "current_page": page,
-                    "has_next_page": False
-                }
-            
-            # If we don't have any results, scrape both sites
-            logger.info("No cached results found, scraping both sites")
-            
-            # Scrape Rightmove if needed
-            if site_stats['rightmove'] == 0:
-                logger.info("Scraping Rightmove...")
-                rightmove_results = await self.scrape_rightmove(
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    listing_type=listing_type,
-                    page=page,
-                    keywords=keywords
-                )
-                if rightmove_results and isinstance(rightmove_results, dict) and "listings" in rightmove_results:
-                    combined_results.extend(rightmove_results["listings"])
-                    site_stats['rightmove'] = len(rightmove_results["listings"])
-                    # Cache Rightmove results
-                    self.db.cache_results(
-                        'rightmove',
-                        location,
-                        min_price,
-                        max_price,
-                        min_beds,
-                        max_beds,
-                        keywords,
-                        listing_type,
-                        page,
-                        rightmove_results
-                    )
-            
-            # Scrape Zoopla if needed
-            if site_stats['zoopla'] == 0:
-                logger.info("Scraping Zoopla...")
-                zoopla_results = await self.scrape_zoopla(
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    keywords=keywords,
-                    listing_type=listing_type,
-                    page=page
-                )
-                if zoopla_results and isinstance(zoopla_results, dict) and "listings" in zoopla_results:
-                    combined_results.extend(zoopla_results["listings"])
-                    site_stats['zoopla'] = len(zoopla_results["listings"])
-                    # Cache Zoopla results
-                    self.db.cache_results(
-                        'zoopla',
-                        location,
-                        min_price,
-                        max_price,
-                        min_beds,
-                        max_beds,
-                        keywords,
-                        listing_type,
-                        page,
-                        zoopla_results
-                    )
-            
-            # Deduplicate results
-            if combined_results:
-                combined_results = self.deduplicate_results(combined_results)
-            
-            return {
-                "listings": combined_results,
-                "site_stats": site_stats,
-                "total_found": len(combined_results),
-                "total_pages": 1,
-                "current_page": page,
-                "has_next_page": False
-            }
-            
+
+
         except Exception as e:
             logger.error("Error in scrape_combined: %s", str(e))
             return {
@@ -485,4 +378,4 @@ async def main():
     await bot.scrape_all_combinations()
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
