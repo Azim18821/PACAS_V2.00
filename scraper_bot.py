@@ -359,13 +359,7 @@ class ScraperBot:
                 "total_pages": max(rightmove_results.get("total_pages", 1), zoopla_total_pages),
                 "current_page": page,
                 "has_next_page": page < max(rightmove_results.get("total_pages", 1), zoopla_total_pages)
-            min_beds=min_beds,
-                    max_beds=max_beds,
-                    keywords=keywords,
-                    listing_type=listing_type,
-                    page_number=page
-                )
-            )
+            }
             
             combined_results = []
             site_stats = {}
