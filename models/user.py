@@ -13,7 +13,7 @@ class User(UserMixin):
     @staticmethod
     def get_by_id(user_id):
         db = Database()
-        with db.get_connection() as conn:
+        with sqlite3.connect(db.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
             user = cursor.fetchone()
@@ -24,7 +24,7 @@ class User(UserMixin):
     @staticmethod
     def get_by_email(email):
         db = Database()
-        with db.get_connection() as conn:
+        with sqlite3.connect(db.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
             user = cursor.fetchone()

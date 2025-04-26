@@ -41,12 +41,8 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Placeholder for User model - needs to be implemented
-class User:
-    @staticmethod
-    def get_by_id(user_id):
-        # Replace with actual database query
-        return None  # Placeholder
+# Import User model
+from models.user import User
 
 @login_manager.user_loader
 def load_user(user_id):
