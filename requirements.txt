@@ -19,3 +19,7 @@ flask-bcrypt
 flask-login
 flask-wtf
 flask-limiter
+bcrypt
+flask-login
+bcrypt
+flask-login

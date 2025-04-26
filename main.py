@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response, redirect, url_for, flash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_cors import CORS
 from dotenv import load_dotenv
 from scrapers.zoopla import scrape_zoopla, scrape_zoopla_first_page, scrape_zoopla_page
