@@ -299,46 +299,66 @@ class ScraperBot:
 
             # Scrape both sites concurrently
             logger.info("[Combined] Starting concurrent scraping...")
-            rightmove_results, zoopla_results = await asyncio.gather(
-                scrape_rightmove_from_url(
-                    get_final_rightmove_results_url(
+            rightmove_url = get_final_rightmove_results_url(
+                location=location,
+                min_price=min_price,
+                max_price=max_price,
+                min_beds=min_beds,
+                max_beds=max_beds,
+                radius=self.radius,
+                include_sold=self.include_sold,
+                listing_type=listing_type,
+                page=page
+            )
+            
+            try:
+                rightmove_results, zoopla_results = await asyncio.gather(
+                    scrape_rightmove_from_url(rightmove_url, page=page),
+                    scrape_zoopla_first_page(
                         location=location,
                         min_price=min_price,
                         max_price=max_price,
                         min_beds=min_beds,
                         max_beds=max_beds,
-                        radius=self.radius,
-                        include_sold=self.include_sold,
+                        keywords=keywords,
                         listing_type=listing_type,
-                        page=page
-                    ),
-                    page=page
-                ),
-                scrape_zoopla_first_page(
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    keywords=keywords,
-                    listing_type=listing_type,
-                    page_number=page
+                        page_number=page
+                    )
                 )
-            )
+            except Exception as e:
+                logger.error(f"Error during concurrent scraping: {str(e)}")
+                rightmove_results = {"listings": [], "total_pages": 1}
+                zoopla_results = ([], 1)
 
             # Process Rightmove results
-            rightmove_listings = rightmove_results.get("listings", []) if isinstance(rightmove_results, dict) else []
+            rightmove_listings = []
+            rightmove_total_pages = 1
+            if isinstance(rightmove_results, dict):
+                rightmove_listings = rightmove_results.get("listings", [])
+                rightmove_total_pages = rightmove_results.get("total_pages", 1)
             rightmove_total = len(rightmove_listings)
 
             # Process Zoopla results
-            zoopla_listings, zoopla_total_pages = zoopla_results if isinstance(zoopla_results, tuple) else ([], 0)
+            zoopla_listings = []
+            zoopla_total_pages = 1
+            if isinstance(zoopla_results, tuple) and len(zoopla_results) == 2:
+                zoopla_listings, zoopla_total_pages = zoopla_results
             zoopla_total = len(zoopla_listings)
 
-            # Combine all listings
-            combined_results = rightmove_listings + zoopla_listings
+            # Convert listings to list of tuples for deduplication
+            combined_results = []
+            for listing in rightmove_listings + zoopla_listings:
+                # Create a tuple of key fields for deduplication
+                key_fields = (
+                    listing.get("title", ""),
+                    listing.get("price", ""),
+                    listing.get("address", "")
+                )
+                combined_results.append((key_fields, listing))
 
-            # Deduplicate results
-            combined_results = self.deduplicate_results(combined_results)
+            # Deduplicate using a dictionary
+            deduped_dict = dict(combined_results)
+            combined_results = list(deduped_dict.values())
 
             # Calculate site statistics
             site_stats = {
