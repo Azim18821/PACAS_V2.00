@@ -4,6 +4,11 @@ from flask_login import UserMixin
 from utils.database import Database
 import bcrypt
 
+from flask_login import UserMixin
+from utils.database import Database
+import sqlite3
+import bcrypt
+
 class User(UserMixin):
     def __init__(self, id, username, email, password_hash):
         self.id = id
