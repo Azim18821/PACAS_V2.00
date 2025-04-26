@@ -339,18 +339,21 @@ class ScraperBot:
             )
 
             # Wait for both tasks to complete
-            rightmove_results = await rightmove_task
-            zoopla_results = await zoopla_task
+            rightmove_results, zoopla_results = await asyncio.gather(rightmove_task, zoopla_task)
 
             # Initialize empty results if either scraper failed
-            if not rightmove_results:
+            if not rightmove_results or not isinstance(rightmove_results, dict):
                 rightmove_results = {"listings": [], "total_pages": 1}
-            if not zoopla_results:
+            if not zoopla_results or not isinstance(zoopla_results, dict):
                 zoopla_results = {"listings": [], "total_pages": 1}
 
             # Extract listings and metadata
             rightmove_listings = rightmove_results.get("listings", [])
-            zoopla_listings = zoopla_results.get("listings", []) if isinstance(zoopla_results, dict) else []
+            zoopla_listings = zoopla_results.get("listings", [])
+
+            # Debug logging
+            logger.info(f"[Combined] Rightmove listings found: {len(rightmove_listings)}")
+            logger.info(f"[Combined] Zoopla listings found: {len(zoopla_listings)}")
 
             # Create unique identifier for each listing
             unique_listings = {}
