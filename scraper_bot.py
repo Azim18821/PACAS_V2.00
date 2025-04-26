@@ -150,8 +150,28 @@ class ScraperBot:
             logger.error(f"[Zoopla ERROR] {str(e)}")
             return None
 
+    def normalize_address(self, address):
+        """Normalize address for comparison by removing spaces, commas and converting to lowercase"""
+        if not address:
+            return ""
+        return ''.join(c.lower() for c in address if c.isalnum())
+
+    def is_duplicate_listing(self, listing, existing_listings):
+        """Check if listing is duplicate based on normalized address or URL"""
+        new_address = self.normalize_address(listing.get('address', ''))
+        new_url = listing.get('url', '').lower()
+        
+        for existing in existing_listings:
+            # Check for duplicate addresses
+            if new_address and new_address == self.normalize_address(existing.get('address', '')):
+                return True
+            # Check for duplicate URLs
+            if new_url and new_url == existing.get('url', '').lower():
+                return True
+        return False
+
     async def scrape_combined(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
-        """Scrape both Rightmove and Zoopla and combine results"""
+        """Scrape both Rightmove and Zoopla and combine results with deduplication"""
         try:
             # Check combined cache first
             cached_results = self.db.get_cached_results(
@@ -180,16 +200,22 @@ class ScraperBot:
 
             rightmove_results, zoopla_results = await asyncio.gather(rightmove_task, zoopla_task)
 
-            # Combine results
+            # Combine results with deduplication
             combined_listings = []
             total_pages = 1
             
+            # Add Rightmove listings first
             if rightmove_results:
-                combined_listings.extend(rightmove_results.get('listings', []))
+                for listing in rightmove_results.get('listings', []):
+                    if not self.is_duplicate_listing(listing, combined_listings):
+                        combined_listings.append(listing)
                 total_pages = max(total_pages, rightmove_results.get('total_pages', 1))
             
+            # Add non-duplicate Zoopla listings
             if zoopla_results:
-                combined_listings.extend(zoopla_results.get('listings', []))
+                for listing in zoopla_results.get('listings', []):
+                    if not self.is_duplicate_listing(listing, combined_listings):
+                        combined_listings.append(listing)
                 total_pages = max(total_pages, zoopla_results.get('total_pages', 1))
 
             # Create combined results structure
