@@ -262,6 +262,19 @@ async function performSearch() {
     const resultsCount = document.getElementById("results-count");
     const progressDiv = document.getElementById("progress");
 
+    // Create search parameters object
+    const searchParams = {
+        site: document.getElementById("site").value || 'zoopla',
+        location: location,
+        listing_type: document.getElementById("listing_type").value || 'sale',
+        min_price: document.getElementById("min_price").value || '0',
+        max_price: document.getElementById("max_price").value || '10000000',
+        min_beds: minBeds || '0',
+        max_beds: maxBeds || '10',
+        keywords: keywords || '',
+        sort_by: document.getElementById("sort_by").value || 'newest'
+    };
+
     // Clear previous error, results, pagination, and count
     locationError.textContent = "";
     resultsContainer.innerHTML = "";
