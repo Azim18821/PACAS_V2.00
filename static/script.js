@@ -422,10 +422,13 @@ function changePage(direction) {
     // Update the display
     displayCurrentPage();
     
-    // Scroll to results section
-    const resultsHeader = document.querySelector('.results-header');
-    if (resultsHeader) {
-        resultsHeader.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to results section smoothly
+    const searchResults = document.querySelector('.section');
+    if (searchResults) {
+        window.scrollTo({
+            top: searchResults.offsetTop - 20,
+            behavior: 'smooth'
+        });
     }
 }
 
