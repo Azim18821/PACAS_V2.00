@@ -202,119 +202,69 @@ async def search():
         # Disable login requirement for search API
         login_manager.login_view = None
 
+        # Get search parameters from request
         try:
-            # Get search parameters from request
-            try:
-                data = request.get_json()
-                if not data:
-                    return jsonify({"error": "Invalid JSON data"}), 400
-            except Exception as e:
-                logger.error(f"Error parsing JSON: {str(e)}")
-                return jsonify({"error": "Invalid JSON data"}), 400
-
+            data = request.get_json()
             if not data:
-                logger.error("No JSON data received")
-                return jsonify({"error": "No search parameters provided"}), 400
+                return jsonify({"error": "Invalid JSON data"}), 400
+        except Exception as e:
+            logger.error(f"Error parsing JSON: {str(e)}")
+            return jsonify({"error": "Invalid JSON data"}), 400
 
-            # Validate required fields
-            location = data.get('location')
-            if not location or not location.strip():
-                return jsonify({"error": "Location is required"}), 400
+        if not data:
+            logger.error("No JSON data received")
+            return jsonify({"error": "No search parameters provided"}), 400
 
-            logger.info("Received search request: %s", data)
+        # Validate required fields
+        location = data.get('location')
+        if not location or not location.strip():
+            return jsonify({"error": "Location is required"}), 400
 
-            # Check required fields
-            required_fields = ['site', 'location', 'listing_type']
-            for field in required_fields:
-                if not data.get(field):
-                    logger.error(f"Missing required field: {field}")
-                    return jsonify({"error": f"Missing required field: {field}"}), 400
+        logger.info("Received search request: %s", data)
 
-            # Validate search parameters  
+        # Check required fields
+        required_fields = ['site', 'location', 'listing_type']
+        for field in required_fields:
+            if not data.get(field):
+                logger.error(f"Missing required field: {field}")
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        # Validate search parameters  
+        try:
+            validated_data = validate_search_params(data)
+            logger.info("Validated search parameters: %s", validated_data)
+        except ValidationError as e:
+            logger.error("Validation error: %s", str(e))
+            return jsonify({"error": str(e)}), 400
+
+        # If site is combined, redirect to combined endpoint
+        if validated_data['site'] == 'combined':
+            logger.info("Redirecting combined search to combined endpoint")
+            return await search_combined()
+
+        # Check database cache first
+        cached_results = db.get_cached_results(
+            validated_data['site'],
+            validated_data['location'],
+            validated_data['min_price'],
+            validated_data['max_price'],
+            validated_data['min_beds'],
+            validated_data['max_beds'],
+            validated_data['keywords'],
+            validated_data['listing_type'],
+            1  # First page
+        )
+
+        if cached_results:
+            logger.info("Found valid cached results in database")
+            return jsonify(cached_results)
+
+        # If not in cache, scrape the site
+        if validated_data['site'] == 'zoopla':
+            logger.info("Scraping Zoopla...")
             try:
-                validated_data = validate_search_params(data)
-                logger.info("Validated search parameters: %s", validated_data)
-            except ValidationError as e:
-                logger.error("Validation error: %s", str(e))
-                return jsonify({"error": str(e)}), 400
-
-            # If site is combined, redirect to combined endpoint
-            if validated_data['site'] == 'combined':
-                logger.info("Redirecting combined search to combined endpoint")
-                return await search_combined()
-
-            # Check database cache first
-            cached_results = db.get_cached_results(
-                validated_data['site'],
-                validated_data['location'],
-                validated_data['min_price'],
-                validated_data['max_price'],
-                validated_data['min_beds'],
-                validated_data['max_beds'],
-                validated_data['keywords'],
-                validated_data['listing_type'],
-                1  # First page
-            )
-
-            if cached_results:
-                logger.info("Found valid cached results in database")
-                return jsonify(cached_results)
-
-            # If not in cache, scrape the site
-            if validated_data['site'] == 'zoopla':
-                logger.info("Scraping Zoopla...")
-                try:
-                    # Get first page and total pages
-                    first_page_results, total_pages = await scrape_zoopla_first_page(
-                        validated_data['location'],
-                        validated_data['min_price'],
-                        validated_data['max_price'],
-                        validated_data['min_beds'],
-                        validated_data['max_beds'],
-                        validated_data['keywords'],
-                        validated_data['listing_type'],
-                        1  # First page
-                    )
-
-                    # Prepare response
-                    response_data = {
-                        "listings": first_page_results,
-                        "total_found": len(first_page_results),
-                        "total_pages": total_pages,
-                        "current_page": 1,
-                        "is_complete": False,
-                        "search_params": validated_data
-                    }
-
-                    # Only cache if we have valid results
-                    if first_page_results and len(first_page_results) > 0:
-                        db.cache_results(
-                            validated_data['site'],
-                            validated_data['location'],
-                            validated_data['min_price'],
-                            validated_data['max_price'],
-                            validated_data['min_beds'],
-                            validated_data['max_beds'],
-                            validated_data['keywords'],
-                            validated_data['listing_type'],
-                            1,  # First page
-                            response_data
-                        )
-                        logger.info("Cached valid results with %d listings", len(first_page_results))
-                    else:
-                        logger.info("Skipping cache for empty results")
-
-                    return jsonify(response_data)
-                except Exception as e:
-                    logger.error("Error scraping Zoopla first page: %s", str(e))
-                    return jsonify({
-                        "error": f"Error scraping Zoopla: {str(e)}",
-                        "details": "Failed to fetch first page of results"
-                    }), 500
-            else:
-                # For other sites, use regular scraping
-                results = await scrape_site(
-                    validated_data['site'],
+                # Get first page and total pages
+                first_page_results, total_pages = await scrape_zoopla_first_page(
                     validated_data['location'],
                     validated_data['min_price'],
                     validated_data['max_price'],
@@ -327,17 +277,16 @@ async def search():
 
                 # Prepare response
                 response_data = {
-                    "listings": results.get("listings", []) if isinstance(results, dict) else results,
-                    "total_found": len(results.get("listings", [])) if isinstance(results, dict) else len(results),
-                    "total_pages": results.get("total_pages", 1) if isinstance(results, dict) else 1,
+                    "listings": first_page_results,
+                    "total_found": len(first_page_results),
+                    "total_pages": total_pages,
                     "current_page": 1,
-                    "is_complete": True,
+                    "is_complete": False,
                     "search_params": validated_data
                 }
 
                 # Only cache if we have valid results
-                listings = results.get("listings", []) if isinstance(results, dict) else results
-                if listings and len(listings) > 0:
+                if first_page_results and len(first_page_results) > 0:
                     db.cache_results(
                         validated_data['site'],
                         validated_data['location'],
@@ -350,18 +299,61 @@ async def search():
                         1,  # First page
                         response_data
                     )
-                    logger.info("Cached valid results with %d listings", len(listings))
+                    logger.info("Cached valid results with %d listings", len(first_page_results))
                 else:
                     logger.info("Skipping cache for empty results")
 
                 return jsonify(response_data)
+            except Exception as e:
+                logger.error("Error scraping Zoopla first page: %s", str(e))
+                return jsonify({
+                    "error": f"Error scraping Zoopla: {str(e)}",
+                    "details": "Failed to fetch first page of results"
+                }), 500
+        else:
+            # For other sites, use regular scraping
+            results = await scrape_site(
+                validated_data['site'],
+                validated_data['location'],
+                validated_data['min_price'],
+                validated_data['max_price'],
+                validated_data['min_beds'],
+                validated_data['max_beds'],
+                validated_data['keywords'],
+                validated_data['listing_type'],
+                1  # First page
+            )
 
-        except Exception as e:
-            logger.error("Error processing search request: %s", str(e))
-            return jsonify({
-                "error": "Internal server error",
-                "details": str(e)
-            }), 500
+            # Prepare response
+            response_data = {
+                "listings": results.get("listings", []) if isinstance(results, dict) else results,
+                "total_found": len(results.get("listings", [])) if isinstance(results, dict) else len(results),
+                "total_pages": results.get("total_pages", 1) if isinstance(results, dict) else 1,
+                "current_page": 1,
+                "is_complete": True,
+                "search_params": validated_data
+            }
+
+            # Only cache if we have valid results
+            listings = results.get("listings", []) if isinstance(results, dict) else results
+            if listings and len(listings) > 0:
+                db.cache_results(
+                    validated_data['site'],
+                    validated_data['location'],
+                    validated_data['min_price'],
+                    validated_data['max_price'],
+                    validated_data['min_beds'],
+                    validated_data['max_beds'],
+                    validated_data['keywords'],
+                    validated_data['listing_type'],
+                    1,  # First page
+                    response_data
+                )
+                logger.info("Cached valid results with %d listings", len(listings))
+            else:
+                logger.info("Skipping cache for empty results")
+
+            return jsonify(response_data)
 
     except Exception as e:
         logger.error("Error processing search request: %s", str(e))
