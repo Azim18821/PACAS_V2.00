@@ -308,10 +308,18 @@ async function performSearch() {
         const data = await response.json();
 
         // Handle validation errors
-        if (response.status === 400 && data.error) {
-            locationError.textContent = data.error;
-            locationError.classList.add('show');
-            document.getElementById("location").classList.add('error');
+        if (!response.ok) {
+            if (response.status === 400 && data.error) {
+                locationError.textContent = data.error;
+                locationError.classList.add('show');
+                document.getElementById("location").classList.add('error');
+            } else {
+                console.error('Search error:', data);
+                resultsContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>Error: ${data.error || 'Failed to perform search'}</p>
+                    </div>`;
+            }
             return;
         }
 

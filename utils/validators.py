@@ -184,10 +184,29 @@ def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
         
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
-        raise ValidationError(f"Invalid search parameters: {str(e)}", e.field)
+        def validate_search_params(params):
+    """Validate search parameters"""
+    try:
+        # Set default values if not provided
+        params = {
+            'site': params.get('site', 'rightmove'),
+            'location': params.get('location', ''),
+            'listing_type': params.get('listing_type', 'sale'),
+            'min_price': params.get('min_price', '0'),
+            'max_price': params.get('max_price', '10000000'),
+            'min_beds': params.get('min_beds', '0'),
+            'max_beds': params.get('max_beds', '10'),
+            'keywords': params.get('keywords', '')
+        }
+        
+        if not params['location']:
+            raise ValidationError("Location is required")
+            
+        return params
+        
     except Exception as e:
-        logger.error(f"Unexpected error during validation: {str(e)}")
-        raise ValidationError("An unexpected error occurred during validation")
+        logger.error(f"Validation error: {str(e)}")
+        raise ValidationError(str(e))
 
 # Rate limiting implementation
 class RateLimiter:
