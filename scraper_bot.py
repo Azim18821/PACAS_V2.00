@@ -347,9 +347,19 @@ class ScraperBot:
             if not zoopla_results or not isinstance(zoopla_results, dict):
                 zoopla_results = {"listings": [], "total_pages": 1}
 
-            # Extract listings and metadata
-            rightmove_listings = rightmove_results.get("listings", [])
-            zoopla_listings = zoopla_results.get("listings", [])
+            # Extract listings and metadata with better error handling
+            rightmove_listings = []
+            if rightmove_results and isinstance(rightmove_results, dict):
+                rightmove_listings = rightmove_results.get("listings", [])
+                if not rightmove_listings:
+                    logger.warning("[Combined] No Rightmove listings found in results")
+                    logger.debug(f"[Combined] Rightmove results: {rightmove_results}")
+            else:
+                logger.error(f"[Combined] Invalid Rightmove results format: {rightmove_results}")
+
+            zoopla_listings = []
+            if zoopla_results and isinstance(zoopla_results, dict):
+                zoopla_listings = zoopla_results.get("listings", [])
 
             # Debug logging
             logger.info(f"[Combined] Rightmove listings found: {len(rightmove_listings)}")

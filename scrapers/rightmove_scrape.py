@@ -68,11 +68,19 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
             total_pages = (total_results + 23) // 24 if total_results > 0 else 247
             return total_pages
 
-        # Use unified selector for both rental and sale listings
-        cards = soup.select("[data-test='propertyCard']")
-        if not cards:
-            # Fallback selectors
-            cards = soup.select(".propertyCard") or soup.select(".l-searchResult") or soup.select(".PropertyCard_propertyCardContainer__VSRSA")
+        # Improved selectors for property cards
+        cards = (
+            soup.select("[data-test='propertyCard']") or
+            soup.select(".propertyCard") or 
+            soup.select(".l-searchResult") or
+            soup.select(".PropertyCard_propertyCardContainer__VSRSA") or
+            soup.select(".is-list") or
+            soup.select(".l-searchResult") or
+            soup.select("[data-test='property-details']")
+        )
+        
+        # Log the search attempt
+        print(f"[Rightmove] Found {len(cards)} property cards using improved selectors")
         
         print(f"[Rightmove] Found {len(cards)} property cards on page {page}")
         
