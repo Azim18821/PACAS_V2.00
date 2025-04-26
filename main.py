@@ -186,15 +186,28 @@ def logout():
     return redirect(url_for('home'))
 
 @app.route('/api/search', methods=['POST'])
-@limiter.limit("50/hour") #Example rate limit
+@limiter.limit("50/hour")
 async def search():
+    # Disable login requirement for search API
+    app.config['LOGIN_DISABLED'] = True
     """Handle property search requests"""
     try:
         # Get search parameters from request
         data = request.get_json()
-        logger.info("Received search request: %s", data)
+        if not data:
+            logger.error("No JSON data received")
+            return jsonify({"error": "No search parameters provided"}), 400
 
-        # Validate search parameters
+        logger.info("Received search request: %s", data)
+        
+        # Check required fields
+        required_fields = ['site', 'location', 'listing_type']
+        for field in required_fields:
+            if not data.get(field):
+                logger.error(f"Missing required field: {field}")
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        # Validate search parameters  
         try:
             validated_data = validate_search_params(data)
             logger.info("Validated search parameters: %s", validated_data)

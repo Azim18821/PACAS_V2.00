@@ -285,15 +285,15 @@ async function performSearch() {
 
         // Prepare search parameters
         const searchParams = {
-            site: site.value,
-            location: location,
-            listing_type: listingType.value,
-            min_price: minPrice.value,
-            max_price: maxPrice.value,
-            min_beds: minBeds,
-            max_beds: maxBeds,
-            keywords: keywords,
-            sort_by: sortBy.value
+            site: site.value || 'zoopla',
+            location: location || '',
+            listing_type: listingType.value || 'sale',
+            min_price: minPrice.value || '0',
+            max_price: maxPrice.value || '10000000',
+            min_beds: minBeds || '0',
+            max_beds: maxBeds || '10',
+            keywords: keywords || '',
+            sort_by: sortBy.value || 'newest'
         };
 
         // Make API call
