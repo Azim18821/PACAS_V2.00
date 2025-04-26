@@ -310,8 +310,8 @@ class ScraperBot:
                 page=page
             )
 
-            # Scrape sites individually for better control and debugging
-            logger.info("[Combined] Starting Rightmove scraping...")
+            # Only scrape Rightmove
+            logger.info("[Rightmove] Starting scraping...")
             rightmove_results = await self.scrape_rightmove(
                 location=location,
                 min_price=min_price,
@@ -325,25 +325,23 @@ class ScraperBot:
 
             # Print Rightmove results
             if rightmove_results and isinstance(rightmove_results, dict):
-                logger.info("\n=== Rightmove Results ===")
-                logger.info(f"Total listings found: {len(rightmove_results.get('listings', []))}")
-                for listing in rightmove_results.get('listings', []):
+                listings = rightmove_results.get('listings', [])
+                logger.info(f"\n=== Rightmove Results ===")
+                logger.info(f"Total listings found: {len(listings)}")
+                for listing in listings:
                     logger.info(f"\nTitle: {listing.get('title')}")
                     logger.info(f"Price: {listing.get('price')}")
                     logger.info(f"URL: {listing.get('url')}")
                     logger.info("-" * 50)
-
-            logger.info("[Combined] Starting Zoopla scraping...")
-            zoopla_results = await self.scrape_zoopla(
-                location=location,
-                min_price=min_price,
-                max_price=max_price,
-                min_beds=min_beds,
-                max_beds=max_beds,
-                listing_type=listing_type,
-                page=page,
-                keywords=keywords
-            )
+                return rightmove_results
+            else:
+                return {
+                    "listings": [],
+                    "total_found": 0,
+                    "total_pages": 1,
+                    "current_page": page,
+                    "has_next_page": False
+                }
 
             # Print Zoopla results
             if zoopla_results and isinstance(zoopla_results, dict):
@@ -371,38 +369,19 @@ class ScraperBot:
                     if "source" not in listing:
                         listing["source"] = "Rightmove"
 
-            zoopla_listings = []
-            if zoopla_results and isinstance(zoopla_results, dict):
-                zoopla_listings = zoopla_results.get("listings", [])
-                logger.info(f"[Combined] Processing {len(zoopla_listings)} Zoopla listings")
+            # Process only Rightmove listings
+            rightmove_listings = []
+            if rightmove_results and isinstance(rightmove_results, dict):
+                rightmove_listings = rightmove_results.get("listings", [])
+                logger.info(f"[Rightmove] Processing {len(rightmove_listings)} listings")
 
-            # Debug logging
-            logger.info(f"[Combined] Rightmove listings found: {len(rightmove_listings)}")
-            logger.info(f"[Combined] Zoopla listings found: {len(zoopla_listings)}")
-
-            # Create unique identifier for each listing
-            unique_listings = {}
-            
-            # Process Rightmove listings
-            for listing in rightmove_listings:
-                key = (
-                    listing.get("price", "").lower(),
-                    listing.get("address", "").lower()
-                )
-                if key not in unique_listings:
-                    unique_listings[key] = listing
-
-            # Process Zoopla listings
-            for listing in zoopla_listings:
-                key = (
-                    listing.get("price", "").lower(),
-                    listing.get("address", "").lower()
-                )
-                if key not in unique_listings:
-                    unique_listings[key] = listing
-
-            # Get final deduplicated list
-            combined_listings = list(unique_listings.values())
+            return {
+                "listings": rightmove_listings,
+                "total_found": len(rightmove_listings),
+                "total_pages": rightmove_results.get("total_pages", 1) if rightmove_results else 1,
+                "current_page": page,
+                "has_next_page": rightmove_results.get("has_next_page", False) if rightmove_results else False
+            }
 
             # Calculate stats
             rightmove_total = len(rightmove_listings)
