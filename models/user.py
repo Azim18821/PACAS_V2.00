@@ -8,8 +8,9 @@ class User(UserMixin):
     def __init__(self, id, username, email, password_hash):
         self.id = id
         self.username = username
-        self.email = email 
-        self.password_hash = password_hash
+        self.email = email
+        # Ensure password_hash is bytes
+        self.password_hash = password_hash if isinstance(password_hash, bytes) else bytes(password_hash)
         
     @staticmethod
     def get_by_id(user_id):

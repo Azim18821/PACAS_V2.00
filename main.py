@@ -138,6 +138,47 @@ async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, 
 def home():
     return render_template('index.html')
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        user = User.get_by_email(email)
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Logged in successfully.')
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid email or password.')
+
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if User.get_by_email(email):
+            flash('Email already registered.')
+            return redirect(url_for('register'))
+
+        if User.create_user(username, email, password):
+            flash('Registration successful. Please login.')
+            return redirect(url_for('login'))
+        else:
+            flash('Registration failed.')
+
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
 @app.route('/api/search', methods=['POST'])
 @limiter.limit("50/hour") #Example rate limit
 async def search():
