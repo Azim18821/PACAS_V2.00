@@ -31,8 +31,9 @@ app = Flask('app')
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['WTF_CSRF_SECRET_KEY'] = secrets.token_hex(32)
 
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 csrf = CSRFProtect(app)
+csrf.exempt("search")  # Exempt search endpoint from CSRF
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -187,12 +188,18 @@ def logout():
 
 @app.route('/api/search', methods=['POST'])
 @limiter.limit("50/hour")
+@cross_origin()
 async def search():
     """Handle property search requests"""
     try:
+        # Disable login requirement for search API
+        login_manager.login_view = None
+        
         if not request.is_json:
-            logger.error("Request content-type is not application/json")
-            return jsonify({"error": "Request must be JSON"}), 400
+            return jsonify({"error": "Request must be JSON"}), 400, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
 
         # Get search parameters from request
         data = request.get_json()
