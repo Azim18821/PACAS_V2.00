@@ -262,6 +262,11 @@ async function performSearch() {
     const resultsCount = document.getElementById("results-count");
     const progressDiv = document.getElementById("progress");
 
+    const location = document.getElementById("location").value;
+    const minBeds = document.getElementById("min_beds").value;
+    const maxBeds = document.getElementById("max_beds").value;
+    const keywords = document.getElementById("keywords").value;
+
     // Create search parameters object
     const searchParams = {
         site: document.getElementById("site").value || 'zoopla',

@@ -202,14 +202,17 @@ async def search():
         # Disable login requirement for search API
         login_manager.login_view = None
         
-        if not request.is_json:
-            response = jsonify({"error": "Request must be JSON"})
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
+        try:
+            if not request.is_json:
+                response = jsonify({"error": "Request must be JSON"})
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                response.headers['Content-Type'] = 'application/json'
+                return response, 400
 
-        # Get search parameters from request
-        data = request.get_json()
+            # Get search parameters from request
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "Invalid JSON data"}), 400
         if not data:
             logger.error("No JSON data received")
             return jsonify({"error": "No search parameters provided"}), 400
