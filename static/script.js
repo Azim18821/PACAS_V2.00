@@ -252,7 +252,7 @@ sortBy.addEventListener('change', () => {
 });
 
 async function performSearch() {
-    const location = document.getElementById("location").value;
+    const locationInput = document.getElementById("location").value;
     const keywords = document.getElementById("keywords").value;
     const minBeds = document.getElementById("min_beds").value;
     const maxBeds = document.getElementById("max_beds").value;
@@ -262,7 +262,7 @@ async function performSearch() {
     const resultsCount = document.getElementById("results-count");
     const progressDiv = document.getElementById("progress");
 
-    const location = document.getElementById("location").value;
+
     const minBeds = document.getElementById("min_beds").value;
     const maxBeds = document.getElementById("max_beds").value;
     const keywords = document.getElementById("keywords").value;
@@ -270,7 +270,7 @@ async function performSearch() {
     // Create search parameters object
     const searchParams = {
         site: document.getElementById("site").value || 'zoopla',
-        location: location,
+        location: locationInput,
         listing_type: document.getElementById("listing_type").value || 'sale',
         min_price: document.getElementById("min_price").value || '0',
         max_price: document.getElementById("max_price").value || '10000000',
@@ -322,7 +322,7 @@ async function performSearch() {
     showMoreButton.style.display = "none"; // Hide show more button
     resultsCount.textContent = ""; // Clear the results count
 
-    if (!location) {
+    if (!locationInput) {
         locationError.textContent = "Please enter a location";
         return;
     }
@@ -345,7 +345,7 @@ async function performSearch() {
         // Prepare search parameters
         const searchParams = {
             site: site.value || 'zoopla',
-            location: location || '',
+            location: locationInput || '',
             listing_type: listingType.value || 'sale',
             min_price: minPrice.value || '0',
             max_price: maxPrice.value || '10000000',
@@ -752,8 +752,7 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
             <div class="no-results">
                 <h3>No properties found</h3>
                 <p>Try adjusting your search criteria</p>
-            </div>`;
-        showMoreButton.style.display = 'none';
+            </div>`;        showMoreButton.style.display = 'none';
         paginationContainer.style.display = 'none';
         return;
     }
