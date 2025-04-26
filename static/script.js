@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.addEventListener('scroll', function() {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
+
         // Add/remove scrolled class based on scroll position
         if (scrollTop > 100) {
             resultsHeader.classList.add('scrolled');
@@ -47,7 +47,7 @@ propertyTemplate.className = 'property fade-in';
 
 function updatePriceDropdowns() {
     const selectedSite = site.value;
-    
+
     if (listingType.value === "rent") {
         if (selectedSite === 'zoopla') {
             minPrice.innerHTML = `
@@ -208,7 +208,7 @@ updatePriceDropdowns();
 
 function sortListings(listings, sortBy) {
     const sortedListings = [...listings]; // Create a copy to avoid mutating original array
-    
+
     switch(sortBy) {
         case 'price_asc':
             return sortedListings.sort((a, b) => {
@@ -315,9 +315,15 @@ async function performSearch() {
             return;
         }
 
-        // Handle other errors
+        // Handle any errors
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to fetch results');
+            try {
+                const error = await response.json();
+                showError(`An error occurred while searching. Please try again.\n\n${error.error}`);
+            } catch (e) {
+                showError('An error occurred while searching. Please try again.');
+            }
+            return;
         }
 
         // Update UI with results
@@ -367,27 +373,27 @@ function updateShowMoreButtonVisibility(totalPages) {
 function displayCurrentPage() {
     // Clear the results container first
     resultsContainer.innerHTML = '';
-    
+
     // Calculate total pages based on listings per page
     const totalPages = Math.ceil(currentListings.length / listingsPerPage);
     console.log(`Total listings: ${currentListings.length}`);
     console.log(`Generating ${totalPages} pages (${listingsPerPage} listings per page)`);
     console.log(`We are on page ${PageWeAreOn} of ${totalPages - 1}`);
-    
+
     // Create and add total results count
     // const totalResults = document.createElement('div');
     // totalResults.className = 'total-results';
     // totalResults.textContent = `Found ${currentListings.length} properties`;
     // resultsContainer.appendChild(totalResults);
-    
+
     // Create property grid
     const propertyGrid = document.createElement('div');
     propertyGrid.className = 'property-grid';
-    
+
     const start = (currentPage - 1) * listingsPerPage;
     const end = start + listingsPerPage;
     const listingsToShow = currentListings.slice(start, end);
-    
+
     // Add listings to grid
     listingsToShow.forEach(listing => {
         const card = createListingCard(listing);
@@ -409,19 +415,19 @@ function displayCurrentPage() {
 function changePage(direction) {
     const totalPages = Math.ceil(currentListings.length / listingsPerPage);
     const newPage = currentPage + direction;
-    
+
     if (newPage < 1 || newPage > totalPages) return;
-    
+
     currentPage = newPage;
     PageWeAreOn = newPage; // Update PageWeAreOn when changing pages
     console.log(`Changing page to ${PageWeAreOn} of ${totalPages - 1}`);
-    
+
     // Update Show More button visibility
     updateShowMoreButtonVisibility(totalPages);
-    
+
     // Update the display
     displayCurrentPage();
-    
+
     // Scroll to results section smoothly
     const searchResults = document.querySelector('.section');
     if (searchResults) {
@@ -435,7 +441,7 @@ function changePage(direction) {
 function createListingCard(listing) {
     const card = document.createElement('div');
     card.className = 'property';
-    
+
     // Add image
     const imageWrapper = document.createElement('div');
     imageWrapper.className = 'property-image';
@@ -445,22 +451,22 @@ function createListingCard(listing) {
     img.onerror = () => img.src = 'https://via.placeholder.com/300x200?text=No+Image';
     imageWrapper.appendChild(img);
     card.appendChild(imageWrapper);
-    
+
     // Add details container
     const details = document.createElement('div');
     details.className = 'property-details';
-    
+
     // Add price
     const price = document.createElement('div');
     price.className = 'price';
     price.textContent = listing.price;
     details.appendChild(price);
-    
+
     // Add title
     const title = document.createElement('h3');
     title.textContent = listing.title || listing.address;
     details.appendChild(title);
-    
+
     // Add specs (bedrooms)
     if (listing.specs) {
         const specs = document.createElement('div');
@@ -468,7 +474,7 @@ function createListingCard(listing) {
         specs.textContent = listing.specs;
         details.appendChild(specs);
     }
-    
+
     // Add description
     if (listing.desc) {
         const desc = document.createElement('p');
@@ -476,13 +482,13 @@ function createListingCard(listing) {
         desc.textContent = listing.desc;
         details.appendChild(desc);
     }
-    
+
     // Add source badge
     const source = document.createElement('div');
     source.className = 'source-badge';
     source.textContent = listing.source;
     details.appendChild(source);
-    
+
     // Add view button
     const viewButton = document.createElement('a');
     viewButton.href = listing.url;
@@ -491,14 +497,14 @@ function createListingCard(listing) {
     viewButton.rel = 'noopener noreferrer';
     viewButton.textContent = 'View Details';
     details.appendChild(viewButton);
-    
+
     card.appendChild(details);
     return card;
 }
 
 function updatePagination() {
     const totalPages = Math.ceil(currentListings.length / listingsPerPage);
-    
+
     paginationContainer.innerHTML = `
         <div class="pagination-controls">
             <button class="prev-btn" ${currentPage === 1 ? 'disabled' : ''}>⬅ Previous</button>
@@ -527,12 +533,12 @@ function updatePagination() {
 async function loadMoreResults() {
     const showMoreButton = document.getElementById('show-more');
     const resultsCount = document.getElementById('results-count');
-    
+
     // Prevent duplicate requests while loading
     if (isLoadingMore) {
         return;
     }
-    
+
     isLoadingMore = true;
     showMoreButton.disabled = true;
     showMoreButton.textContent = 'Loading...';
@@ -540,7 +546,7 @@ async function loadMoreResults() {
     try {
         const site = document.getElementById('site').value;
         const nextScrapedPage = scrapedPage + 1;
-        
+
         // Get the current search parameters from the form
         const searchParams = {
             location: document.getElementById('location').value,
@@ -552,7 +558,7 @@ async function loadMoreResults() {
             max_beds: document.getElementById('max_beds').value || '10',
             keywords: document.getElementById('keywords').value || ''
         };
-        
+
         console.log('Loading more results:', {
             site,
             nextScrapedPage,
@@ -561,7 +567,7 @@ async function loadMoreResults() {
             PageWeAreOn,
             searchParams
         });
-        
+
         const response = await fetch('/api/search/next-page', {
             method: 'POST',
             headers: {
@@ -581,7 +587,7 @@ async function loadMoreResults() {
 
         const data = await response.json();
         console.log('Received data:', data);
-        
+
         if (data.listings && data.listings.length > 0) {
             // For Zoopla, check if the new listings are valid
             if (site === 'zoopla') {
@@ -591,7 +597,7 @@ async function loadMoreResults() {
                     listing.price && 
                     listing.url
                 );
-                
+
                 if (!hasValidListings) {
                     console.log('Skipping empty or invalid Zoopla results');
                     // Try the next page if available
@@ -613,20 +619,20 @@ async function loadMoreResults() {
 
             // Add new listings to existing ones and sort all listings
             currentListings = sortListings([...currentListings, ...data.listings], sortBy.value);
-            
+
             // Update the results count
             resultsCount.textContent = `Found ${currentListings.length} properties`;
-            
+
             // Update display with all listings
             displayCurrentPage();
-            
+
             // Update scrapedPage and lastScrapedPage for backend communication
             scrapedPage = data.current_page;
             lastScrapedPage = data.current_page;
-            
+
             // Update PageWeAreOn for UI purposes only
             PageWeAreOn = Math.ceil(currentListings.length / listingsPerPage) - 1;
-            
+
             // Update Show More button visibility
             updateShowMoreButtonVisibility(data.total_pages);
         } else {
@@ -659,7 +665,7 @@ async function loadMoreResults() {
 function updateResults(listings, totalFound, totalPages, currentPage, isComplete) {
     const resultsContainer = document.getElementById("results");
     const resultsCount = document.getElementById("results-count");
-    
+
     // Update results count
     if (totalFound > 0) {
         resultsCount.textContent = `Found ${totalFound} properties`;
@@ -690,7 +696,7 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
     if (site === 'zoopla') {
         console.log('Checking Zoopla listings validity');
         console.log('First listing:', listings[0]);
-        
+
         // More lenient validation for Zoopla listings
         const hasValidListings = listings.some(listing => {
             // Check if listing exists and has at least a title or price
@@ -700,7 +706,7 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
             }
             return isValid;
         });
-        
+
         if (!hasValidListings) {
             console.log('No valid Zoopla listings found');
             resultsContainer.innerHTML = `
@@ -716,7 +722,7 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
 
     // Store the listings in currentListings for pagination
     currentListings = listings;
-    
+
     // Store search parameters if they're not already stored
     if (!currentSearchParams) {
         currentSearchParams = {
@@ -737,7 +743,7 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
     // Update scrapedPage and lastScrapedPage for backend communication
     scrapedPage = currentPage;
     lastScrapedPage = currentPage;
-    
+
     // Update PageWeAreOn for UI purposes only
     PageWeAreOn = Math.ceil(currentListings.length / listingsPerPage) - 1;
 
@@ -771,4 +777,9 @@ function showTerms() {
 
 function showContact() {
     alert('Contact information will be available soon. This feature is coming in a future update.');
+}
+
+function showError(message) {
+    // Existing showError function implementation.  Replace with your actual error display logic.
+    alert(message);
 }
