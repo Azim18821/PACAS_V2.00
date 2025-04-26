@@ -310,36 +310,50 @@ class ScraperBot:
                 page=page
             )
 
-            # Scrape both sites concurrently
-            logger.info("[Combined] Starting concurrent scraping...")
-            rightmove_task = asyncio.create_task(
-                self.scrape_rightmove(
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    listing_type=listing_type,
-                    page=page,
-                    keywords=keywords
-                )
+            # Scrape sites individually for better control and debugging
+            logger.info("[Combined] Starting Rightmove scraping...")
+            rightmove_results = await self.scrape_rightmove(
+                location=location,
+                min_price=min_price,
+                max_price=max_price,
+                min_beds=min_beds,
+                max_beds=max_beds,
+                listing_type=listing_type,
+                page=page,
+                keywords=keywords
             )
 
-            zoopla_task = asyncio.create_task(
-                self.scrape_zoopla(
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    listing_type=listing_type,
-                    page=page,
-                    keywords=keywords
-                )
+            # Print Rightmove results
+            if rightmove_results and isinstance(rightmove_results, dict):
+                logger.info("\n=== Rightmove Results ===")
+                logger.info(f"Total listings found: {len(rightmove_results.get('listings', []))}")
+                for listing in rightmove_results.get('listings', []):
+                    logger.info(f"\nTitle: {listing.get('title')}")
+                    logger.info(f"Price: {listing.get('price')}")
+                    logger.info(f"URL: {listing.get('url')}")
+                    logger.info("-" * 50)
+
+            logger.info("[Combined] Starting Zoopla scraping...")
+            zoopla_results = await self.scrape_zoopla(
+                location=location,
+                min_price=min_price,
+                max_price=max_price,
+                min_beds=min_beds,
+                max_beds=max_beds,
+                listing_type=listing_type,
+                page=page,
+                keywords=keywords
             )
 
-            # Wait for both tasks to complete
-            rightmove_results, zoopla_results = await asyncio.gather(rightmove_task, zoopla_task)
+            # Print Zoopla results
+            if zoopla_results and isinstance(zoopla_results, dict):
+                logger.info("\n=== Zoopla Results ===")
+                logger.info(f"Total listings found: {len(zoopla_results.get('listings', []))}")
+                for listing in zoopla_results.get('listings', []):
+                    logger.info(f"\nTitle: {listing.get('title')}")
+                    logger.info(f"Price: {listing.get('price')}")
+                    logger.info(f"URL: {listing.get('url')}")
+                    logger.info("-" * 50)
 
             # Initialize empty results if either scraper failed
             if not rightmove_results or not isinstance(rightmove_results, dict):
