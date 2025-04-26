@@ -186,20 +186,27 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/api/search', methods=['POST'])
+@app.route('/api/search', methods=['POST', 'OPTIONS'])
 @limiter.limit("50/hour")
 @cross_origin()
 async def search():
     """Handle property search requests"""
     try:
+        # Handle preflight requests
+        if request.method == 'OPTIONS':
+            response = app.make_default_options_response()
+            response.headers['Access-Control-Allow-Methods'] = 'POST'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
+
         # Disable login requirement for search API
         login_manager.login_view = None
         
         if not request.is_json:
-            return jsonify({"error": "Request must be JSON"}), 400, {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
+            response = jsonify({"error": "Request must be JSON"})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         # Get search parameters from request
         data = request.get_json()

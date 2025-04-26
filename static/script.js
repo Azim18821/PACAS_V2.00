@@ -264,6 +264,28 @@ async function performSearch() {
 
     // Clear previous error, results, pagination, and count
     locationError.textContent = "";
+
+    try {
+        const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.error || 'Search failed');
+            } catch (e) {
+                throw new Error('Search failed: Invalid server response');
+            }
+        }
+
+        const data = await response.json();
     resultsContainer.innerHTML = "";
     paginationContainer.innerHTML = ""; // Clear pagination
     showMoreButton.style.display = "none"; // Hide show more button
