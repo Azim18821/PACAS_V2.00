@@ -188,15 +188,22 @@ def logout():
 @app.route('/api/search', methods=['POST'])
 @limiter.limit("50/hour")
 async def search():
-    # Disable login requirement for search API
-    app.config['LOGIN_DISABLED'] = True
     """Handle property search requests"""
     try:
+        if not request.is_json:
+            logger.error("Request content-type is not application/json")
+            return jsonify({"error": "Request must be JSON"}), 400
+
         # Get search parameters from request
         data = request.get_json()
         if not data:
             logger.error("No JSON data received")
             return jsonify({"error": "No search parameters provided"}), 400
+
+        # Validate required fields
+        location = data.get('location')
+        if not location or not location.strip():
+            return jsonify({"error": "Location is required"}), 400
 
         logger.info("Received search request: %s", data)
         

@@ -260,6 +260,7 @@ async function performSearch() {
     const locationError = document.getElementById("location-error");
     const resultsContainer = document.getElementById("results");
     const resultsCount = document.getElementById("results-count");
+    const progressDiv = document.getElementById("progress");
 
     // Clear previous error, results, pagination, and count
     locationError.textContent = "";
@@ -267,6 +268,11 @@ async function performSearch() {
     paginationContainer.innerHTML = ""; // Clear pagination
     showMoreButton.style.display = "none"; // Hide show more button
     resultsCount.textContent = ""; // Clear the results count
+
+    if (!location) {
+        locationError.textContent = "Please enter a location";
+        return;
+    }
 
     // Reset pagination state
     currentPage = 1;
