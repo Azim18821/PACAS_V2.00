@@ -264,6 +264,10 @@ async function performSearch() {
 
     // Clear previous error, results, pagination, and count
     locationError.textContent = "";
+    resultsContainer.innerHTML = "";
+    paginationContainer.innerHTML = ""; // Clear pagination
+    showMoreButton.style.display = "none"; // Hide show more button
+    resultsCount.textContent = ""; // Clear the results count
 
     try {
         const response = await fetch('/api/search', {
@@ -286,7 +290,16 @@ async function performSearch() {
         }
 
         const data = await response.json();
-    resultsContainer.innerHTML = "";
+        return data;
+    } catch (error) {
+        console.error('Search error:', error);
+        resultsContainer.innerHTML = `
+            <div class="error-message">
+                <p>An error occurred while searching. Please try again.</p>
+                <p class="error-details">${error.message}</p>
+            </div>`;
+        throw error;
+    }
     paginationContainer.innerHTML = ""; // Clear pagination
     showMoreButton.style.display = "none"; // Hide show more button
     resultsCount.textContent = ""; // Clear the results count
