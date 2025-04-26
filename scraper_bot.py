@@ -323,36 +323,38 @@ class ScraperBot:
                 keywords=keywords
             )
 
-            # Print Rightmove results
             # Process Rightmove results
             if rightmove_results and isinstance(rightmove_results, dict):
                 listings = rightmove_results.get('listings', [])
-                if listings:  # Only process if we have listings
-                    logger.info(f"\n=== Rightmove Results ===")
-                    logger.info(f"Total listings found: {len(listings)}")
-                    for listing in listings:
-                        logger.info(f"\nTitle: {listing.get('title')}")
-                        logger.info(f"Price: {listing.get('price')}")
-                        logger.info(f"URL: {listing.get('url')}")
-                        logger.info("-" * 50)
-                    
-                    # Return valid results
-                    return {
-                        "listings": listings,
-                        "total_found": len(listings),
-                        "total_pages": rightmove_results.get('total_pages', 1),
-                        "current_page": page,
-                        "has_next_page": rightmove_results.get('has_next_page', False)
-                    }
-
-            # Return empty results if no valid listings found
-            return {
-                "listings": [],
-                "total_found": 0,
-                "total_pages": 1,
-                "current_page": page,
-                "has_next_page": False
-            }
+                
+                # Debug log
+                logger.info(f"\n=== Rightmove Results ===")
+                logger.info(f"Total listings found: {len(listings)}")
+                
+                # Always print listings for debugging
+                for listing in listings:
+                    logger.info(f"\nTitle: {listing.get('title')}")
+                    logger.info(f"Price: {listing.get('price')}")
+                    logger.info(f"URL: {listing.get('url')}")
+                    logger.info("-" * 50)
+                
+                # Return results regardless of validation
+                return {
+                    "listings": listings,
+                    "total_found": len(listings),
+                    "total_pages": rightmove_results.get('total_pages', 1),
+                    "current_page": page,
+                    "has_next_page": rightmove_results.get('has_next_page', False)
+                }
+            else:
+                logger.warning("[Rightmove] No results dictionary returned")
+                return {
+                    "listings": [],
+                    "total_found": 0,
+                    "total_pages": 1,
+                    "current_page": page,
+                    "has_next_page": False
+                }
 
             # Print Zoopla results
             if zoopla_results and isinstance(zoopla_results, dict):
