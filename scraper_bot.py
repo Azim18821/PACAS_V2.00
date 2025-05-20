@@ -190,26 +190,15 @@ class ScraperBot:
                 logger.info("[Combined] Using cached results")
                 return cached_results
 
-            # Scrape all sites concurrently
+            # Scrape both sites concurrently
             rightmove_task = asyncio.create_task(
                 self.scrape_rightmove(location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords)
             )
             zoopla_task = asyncio.create_task(
                 self.scrape_zoopla(location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords)
             )
-            
-            # Only include OpenRent for rental listings
-            tasks = [rightmove_task, zoopla_task]
-            if listing_type == "rent":
-                openrent_task = asyncio.create_task(
-                    self.scrape_openrent(location, min_price, max_price, min_beds, max_beds, page, keywords)
-                )
-                tasks.append(openrent_task)
-                
-            results = await asyncio.gather(*tasks)
-            rightmove_results = results[0]
-            zoopla_results = results[1]
-            openrent_results = results[2] if listing_type == "rent" else None
+
+            rightmove_results, zoopla_results = await asyncio.gather(rightmove_task, zoopla_task)
 
             # Combine results with deduplication
             combined_listings = []
@@ -228,77 +217,6 @@ class ScraperBot:
                     if not self.is_duplicate_listing(listing, combined_listings):
                         combined_listings.append(listing)
                 total_pages = max(total_pages, zoopla_results.get('total_pages', 1))
-            
-            # Add non-duplicate OpenRent listings for rentals
-            if listing_type == "rent" and openrent_results:
-                for listing in openrent_results.get('listings', []):
-                    if not self.is_duplicate_listing(listing, combined_listings):
-                        combined_listings.append(listing)
-                total_pages = max(total_pages, openrent_results.get('total_pages', 1))
-
-    async def scrape_openrent(self, location, min_price, max_price, min_beds, max_beds, page=1, keywords=""):
-        """Scrape OpenRent listings"""
-        try:
-            # Check cache first
-            cached_results = self.db.get_cached_results(
-                site="OpenRent",
-                location=location,
-                min_price=min_price,
-                max_price=max_price,
-                min_beds=min_beds,
-                max_beds=max_beds,
-                keywords=keywords,
-                listing_type="rent",  # OpenRent is rentals only
-                page_number=page
-            )
-            
-            if cached_results:
-                logger.info("[OpenRent] Using cached results")
-                return cached_results
-
-            # Add small delay between requests
-            await asyncio.sleep(2)
-
-            # Use the existing OpenRent scraper
-            from scrapers.openrent import scrape_openrent
-            listings = scrape_openrent(
-                location=location,
-                min_price=min_price,
-                max_price=max_price,
-                min_beds=min_beds,
-                keywords=keywords
-            )
-
-            # Structure results to match other scrapers
-            results = {
-                'listings': listings,
-                'total_found': len(listings),
-                'total_pages': 1,  # OpenRent currently doesn't support pagination
-                'current_page': page,
-                'has_next_page': False,
-                'is_complete': True
-            }
-
-            # Cache results
-            if listings:
-                self.db.cache_results(
-                    site="OpenRent",
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    keywords=keywords,
-                    listing_type="rent",
-                    page_number=page,
-                    results=results
-                )
-
-            return results
-
-        except Exception as e:
-            logger.error(f"[OpenRent ERROR] {str(e)}")
-            return None
 
             # Create combined results structure
             combined_results = {
