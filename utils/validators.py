@@ -153,8 +153,8 @@ def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
         site = data.get("site", "zoopla")
         
         # Validate site option
-        if site not in ["zoopla", "rightmove", "combined"]:
-            raise ValidationError(f"Invalid site option: {site}. Must be one of: zoopla, rightmove, combined")
+        if site not in ["zoopla", "rightmove", "openrent", "combined"]:
+            raise ValidationError(f"Invalid site option: {site}. Must be one of: zoopla, rightmove, openrent, combined")
         
         min_price, max_price = validate_price_range(
             data.get("min_price", ""),
