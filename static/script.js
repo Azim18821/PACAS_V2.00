@@ -293,17 +293,11 @@ async function performSearch() {
             body: JSON.stringify(searchParams)
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            try {
-                const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.error || 'Search failed');
-            } catch (e) {
-                throw new Error('Search failed: Invalid server response');
-            }
-        }
-
         const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Search failed');
+        }
         return data;
     } catch (error) {
         console.error('Search error:', error);
