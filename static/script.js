@@ -294,9 +294,14 @@ async function performSearch() {
         });
 
         if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Search failed');
+            const errorText = await response.text();
+            try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.error || 'Search failed');
+            } catch (e) {
+                throw new Error('Search failed: Invalid server response');
             }
+        }
 
         const data = await response.json();
         return data;
@@ -748,7 +753,6 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
         return;
     }
 
-```python
     // Check if we're getting results from Zoopla and if they're empty
     const site = document.getElementById('site').value;
     if (site === 'zoopla') {
