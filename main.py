@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, Response
+﻿from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from scrapers.zoopla import scrape_zoopla, scrape_zoopla_first_page, scrape_zoopla_page
@@ -15,38 +15,10 @@ import time
 from datetime import datetime, timedelta
 import json
 import asyncio
-import secrets
-from flask_wtf.csrf import CSRFProtect
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
 
 load_dotenv()
-app = Flask('app')
-app.config['SECRET_KEY'] = secrets.token_hex(32)
-app.config['WTF_CSRF_SECRET_KEY'] = secrets.token_hex(32)
-
-CORS(app)
-csrf = CSRFProtect(app)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
-
-# Import User model
-from models.user import User
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.get_by_id(user_id)
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Initialize database
 db = Database()
@@ -138,7 +110,6 @@ def home():
     return render_template('index.html')
 
 @app.route('/api/search', methods=['POST'])
-@limiter.limit("50/hour") #Example rate limit
 async def search():
     """Handle property search requests"""
     try:
@@ -171,7 +142,7 @@ async def search():
             validated_data['listing_type'],
             1  # First page
         )
-
+        
         if cached_results:
             logger.info("Found valid cached results in database")
             return jsonify(cached_results)
@@ -191,7 +162,7 @@ async def search():
                     validated_data['listing_type'],
                     1  # First page
                 )
-
+                
                 # Prepare response
                 response_data = {
                     "listings": first_page_results,
@@ -201,7 +172,7 @@ async def search():
                     "is_complete": False,
                     "search_params": validated_data
                 }
-
+                
                 # Only cache if we have valid results
                 if first_page_results and len(first_page_results) > 0:
                     db.cache_results(
@@ -219,7 +190,7 @@ async def search():
                     logger.info("Cached valid results with %d listings", len(first_page_results))
                 else:
                     logger.info("Skipping cache for empty results")
-
+                
                 return jsonify(response_data)
             except Exception as e:
                 logger.error("Error scraping Zoopla first page: %s", str(e))
@@ -240,7 +211,7 @@ async def search():
                 validated_data['listing_type'],
                 1  # First page
             )
-
+            
             # Prepare response
             response_data = {
                 "listings": results.get("listings", []) if isinstance(results, dict) else results,
@@ -250,7 +221,7 @@ async def search():
                 "is_complete": True,
                 "search_params": validated_data
             }
-
+            
             # Only cache if we have valid results
             listings = results.get("listings", []) if isinstance(results, dict) else results
             if listings and len(listings) > 0:
@@ -269,7 +240,7 @@ async def search():
                 logger.info("Cached valid results with %d listings", len(listings))
             else:
                 logger.info("Skipping cache for empty results")
-
+            
             return jsonify(response_data)
 
     except Exception as e:
@@ -280,7 +251,6 @@ async def search():
         }), 500
 
 @app.route('/api/search/next-page', methods=['POST'])
-@limiter.limit("50/hour") #Example rate limit
 async def next_page():
     """Handle loading the next page of results"""
     try:
@@ -288,10 +258,10 @@ async def next_page():
         data = request.get_json()
         search_params = data.get('search_params', {})
         current_page = data.get('current_page', 1)
-
+        
         logger.info("Received next page request: %s", data)
         logger.info("Processing next page request for site: %s, page: %d", search_params['site'], current_page)
-
+        
         # Validate and clean parameters using validate_search_params
         try:
             validated_params = validate_search_params(search_params)
@@ -301,7 +271,7 @@ async def next_page():
                 "error": "Invalid parameters",
                 "details": str(e)
             }), 400
-
+        
         # If site is combined, use the scraper bot's scrape_combined method
         if validated_params['site'] == 'combined':
             logger.info("Processing combined search for page %d", current_page)
@@ -317,7 +287,7 @@ async def next_page():
                 keywords=validated_params['keywords']
             )
             return jsonify(results)
-
+        
         # Check cache for current page
         cached_results = db.get_cached_results(
             validated_params['site'],
@@ -330,14 +300,14 @@ async def next_page():
             validated_params['listing_type'],
             current_page
         )
-
+        
         if cached_results:
             logger.info("Found valid cached results for page %d", current_page)
             logger.info("Rightmove cached page %d: has_next_page=%s, total_pages=%d", 
                        current_page, cached_results.get('has_next_page', True),
                        cached_results.get('total_pages', 1))
             return jsonify(cached_results)
-
+        
         # If not in cache, scrape the requested page
         if validated_params['site'] == 'rightmove':
             url = get_final_rightmove_results_url(
@@ -357,25 +327,25 @@ async def next_page():
                     "error": "Failed to generate Rightmove URL",
                     "details": "Could not construct valid URL with the provided parameters"
                 }), 400
-
+                
             logger.info("Scraping Rightmove URL: %s", url)
             page_results = scrape_rightmove_from_url(url, page=current_page)
-
+            
             if not page_results or 'listings' not in page_results:
                 logger.error("Invalid response from Rightmove scraper")
                 return jsonify({
                     "error": "Invalid response from Rightmove",
                     "details": "Failed to fetch page of results"
                 }), 500
-
+            
             # Ensure we have the has_next_page flag
             if 'has_next_page' not in page_results:
                 page_results['has_next_page'] = current_page < page_results.get('total_pages', 1)
-
+            
             logger.info("Rightmove page %d: has_next_page=%s, total_pages=%d", 
                        current_page, page_results['has_next_page'], 
                        page_results.get('total_pages', 1))
-
+            
             # Cache the results
             db.cache_results(
                 validated_params['site'],
@@ -389,7 +359,7 @@ async def next_page():
                 current_page,
                 page_results
             )
-
+            
             return jsonify(page_results)
         elif validated_params['site'] == 'zoopla':
             # Scrape the current page and get total pages
@@ -403,7 +373,7 @@ async def next_page():
                 validated_params['listing_type'],
                 current_page
             )
-
+            
             # Format Zoopla results to match the expected structure
             response_data = {
                 "listings": page_results,
@@ -413,7 +383,7 @@ async def next_page():
                 "has_next_page": current_page < total_pages,
                 "search_params": validated_params
             }
-
+            
             # Only cache if we have valid results
             if page_results and len(page_results) > 0:
                 db.cache_results(
@@ -431,14 +401,14 @@ async def next_page():
                 logger.info("Cached results for page %d", current_page)
             else:
                 logger.info("Skipping cache for page %d - no valid results", current_page)
-
+            
             return jsonify(response_data)
         else:
             return jsonify({
                 "error": "Unsupported site",
                 "details": f"Site {validated_params['site']} is not supported for pagination"
             }), 400
-
+            
     except Exception as e:
         logger.error("Error in next_page: %s", str(e))
         return jsonify({
@@ -447,7 +417,6 @@ async def next_page():
         }), 500
 
 @app.route('/api/search/combined', methods=['POST'])
-@limiter.limit("50/hour") #Example rate limit
 async def search_combined():
     """Handle combined property search requests from multiple sites"""
     try:

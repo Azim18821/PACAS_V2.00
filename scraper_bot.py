@@ -1,29 +1,72 @@
-
 import os
 import asyncio
+import aiohttp
+import random
+import time
 from datetime import datetime
 from dotenv import load_dotenv
-from utils.database import Database
-from utils.logger import logger
 from scrapers.rightmove_url import get_final_rightmove_results_url
 from scrapers.rightmove_scrape import scrape_rightmove_from_url
+from scrapers.zoopla import scrape_zoopla_first_page, scrape_zoopla_page
+from utils.database import Database
+from utils.logger import logger
 
 # Load environment variables
 load_dotenv()
 
+def get_proxy_url(url):
+    """Get the proxy URL for scraping"""
+    scraper_api_key = os.getenv("SCRAPER_API_KEY")
+    if not scraper_api_key:
+        logger.error("[Scraper Bot] No SCRAPER_API_KEY found in environment variables")
+        return url
+
+    proxy_url = f"http://api.scraperapi.com?api_key={scraper_api_key}&url={url}"
+    return proxy_url
+
 class ScraperBot:
     def __init__(self):
         self.db = Database()
-        self.radius = "0.0"  # Default radius for location search
-        self.sort_by = "newest"  # Default sort order
-        self.include_sold = True  # Include sold properties
         self.max_retries = 3
         self.retry_delay = 5
+        self.max_pages = 247  # Maximum pages to scrape per combination
+        self.max_consecutive_empty = 2  # Maximum consecutive empty pages before stopping
+        self.radius = "0.0"  # Default radius for location search
+        self.include_sold = True  # Include sold properties for Rightmove
+        self.sort_by = "newest"  # Default sort order
+
+    def deduplicate_results(self, listings):
+        """Remove duplicate listings based on URL"""
+        seen_urls = set()
+        unique_listings = []
+
+        for listing in listings:
+            url = listing.get('url', '')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_listings.append(listing)
+
+        logger.info(f"Deduplicated {len(listings)} listings to {len(unique_listings)} unique listings")
+        return unique_listings
+
+    def has_valid_listings(self, results):
+        """Check if results contain valid listings"""
+        if not results or "listings" not in results:
+            return False
+        listings = results["listings"]
+        if not listings:
+            return False
+        # Check if at least one listing has required fields
+        return any(
+            listing.get("title") and 
+            listing.get("price") and 
+            listing.get("link")
+            for listing in listings
+        )
 
     async def scrape_rightmove(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
-        """Scrape Rightmove listings"""
+        """Scrape Rightmove with improved error handling and validation"""
         try:
-            # Generate Rightmove URL
             url = get_final_rightmove_results_url(
                 location=location,
                 min_price=min_price,
@@ -41,36 +84,32 @@ class ScraperBot:
                 logger.error(f"[Rightmove] Failed to generate URL for {location}")
                 return None
 
-            # Add small delay between requests
-            await asyncio.sleep(2)
+            # Add random delay between requests
+            await asyncio.sleep(random.uniform(2, 4))
 
-            # Direct scraping using rightmove_scrape
-            logger.info("[Rightmove] Starting scraping...")
             results = scrape_rightmove_from_url(url, page=page)
-            
-            if results and isinstance(results, dict):
-                listings = results.get('listings', [])
-                logger.info(f"[Rightmove] Found {len(listings)} listings")
-                
-                # Add source to listings
-                for listing in listings:
-                    listing['source'] = 'Rightmove'
-                
-                return results
 
-            logger.warning("[Rightmove] No results dictionary returned")
-            return None
+            if not self.has_valid_listings(results):
+                logger.warning(f"[Rightmove] No valid listings found for {location} on page {page}")
+                return None
 
-        except Exception as e:
-            logger.error(f"[Rightmove ERROR] {str(e)}")
-            return None
+            # Filter by keywords if provided
+            if keywords:
+                filtered_listings = []
+                for listing in results["listings"]:
+                    text_to_search = " ".join([
+                        listing.get("title", ""),
+                        listing.get("price", ""),
+                        listing.get("address", ""),
+                        listing.get("desc", "")
+                    ]).lower()
+                    if keywords.lower() in text_to_search:
+                        filtered_listings.append(listing)
+                results["listings"] = filtered_listings
 
-    async def scrape_zoopla(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
-        """Scrape Zoopla listings"""
-        try:
-            # Check cache first
-            cached_results = self.db.get_cached_results(
-                site="Zoopla",
+            # Cache results if valid
+            self.db.cache_results(
+                site="Rightmove",
                 location=location,
                 min_price=min_price,
                 max_price=max_price,
@@ -78,17 +117,21 @@ class ScraperBot:
                 max_beds=max_beds,
                 keywords=keywords,
                 listing_type=listing_type,
-                page_number=page
+                page_number=page,
+                results=results
             )
-            
-            if cached_results:
-                logger.info("[Zoopla] Using cached results")
-                return cached_results
 
-            # Import Zoopla scraper dynamically to avoid circular imports
-            from scrapers.zoopla import scrape_zoopla_first_page, scrape_zoopla_page
+            return results
 
-            await asyncio.sleep(2)  # Add delay between requests
+        except Exception as e:
+            logger.error(f"[Rightmove ERROR] {str(e)}")
+            return None
+
+    async def scrape_zoopla(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
+        """Scrape Zoopla with improved error handling and validation"""
+        try:
+            # Add random delay between requests
+            await asyncio.sleep(random.uniform(2, 4))
 
             if page == 1:
                 results, total_pages = await scrape_zoopla_first_page(
@@ -112,125 +155,25 @@ class ScraperBot:
                     listing_type=listing_type,
                     page_num=page
                 )
-                total_pages = page
+                total_pages = page  # We don't know total pages for subsequent pages
 
-            if results:
-                # Add source to listings
-                for listing in results:
-                    listing['source'] = 'Zoopla'
+            if not results:
+                logger.warning(f"[Zoopla] No valid listings found for {location} on page {page}")
+                return None
 
-                structured_results = {
-                    "listings": results,
-                    "total_found": len(results) * total_pages,
-                    "total_pages": total_pages,
-                    "current_page": page,
-                    "has_next_page": page < total_pages,
-                    "is_complete": page >= total_pages
-                }
-
-                # Cache results
-                self.db.cache_results(
-                    site="Zoopla",
-                    location=location,
-                    min_price=min_price,
-                    max_price=max_price,
-                    min_beds=min_beds,
-                    max_beds=max_beds,
-                    keywords=keywords,
-                    listing_type=listing_type,
-                    page_number=page,
-                    results=structured_results
-                )
-
-                return structured_results
-
-            return None
-
-        except Exception as e:
-            logger.error(f"[Zoopla ERROR] {str(e)}")
-            return None
-
-    def normalize_address(self, address):
-        """Normalize address for comparison by removing spaces, commas and converting to lowercase"""
-        if not address:
-            return ""
-        return ''.join(c.lower() for c in address if c.isalnum())
-
-    def is_duplicate_listing(self, listing, existing_listings):
-        """Check if listing is duplicate based on normalized address or URL"""
-        new_address = self.normalize_address(listing.get('address', ''))
-        new_url = listing.get('url', '').lower()
-        
-        for existing in existing_listings:
-            # Check for duplicate addresses
-            if new_address and new_address == self.normalize_address(existing.get('address', '')):
-                return True
-            # Check for duplicate URLs
-            if new_url and new_url == existing.get('url', '').lower():
-                return True
-        return False
-
-    async def scrape_combined(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
-        """Scrape both Rightmove and Zoopla and combine results with deduplication"""
-        try:
-            # Check combined cache first
-            cached_results = self.db.get_cached_results(
-                site="Combined",
-                location=location,
-                min_price=min_price,
-                max_price=max_price,
-                min_beds=min_beds,
-                max_beds=max_beds,
-                keywords=keywords,
-                listing_type=listing_type,
-                page_number=page
-            )
-            
-            if cached_results:
-                logger.info("[Combined] Using cached results")
-                return cached_results
-
-            # Scrape both sites concurrently
-            rightmove_task = asyncio.create_task(
-                self.scrape_rightmove(location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords)
-            )
-            zoopla_task = asyncio.create_task(
-                self.scrape_zoopla(location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords)
-            )
-
-            rightmove_results, zoopla_results = await asyncio.gather(rightmove_task, zoopla_task)
-
-            # Combine results with deduplication
-            combined_listings = []
-            total_pages = 1
-            
-            # Add Rightmove listings first
-            if rightmove_results:
-                for listing in rightmove_results.get('listings', []):
-                    if not self.is_duplicate_listing(listing, combined_listings):
-                        combined_listings.append(listing)
-                total_pages = max(total_pages, rightmove_results.get('total_pages', 1))
-            
-            # Add non-duplicate Zoopla listings
-            if zoopla_results:
-                for listing in zoopla_results.get('listings', []):
-                    if not self.is_duplicate_listing(listing, combined_listings):
-                        combined_listings.append(listing)
-                total_pages = max(total_pages, zoopla_results.get('total_pages', 1))
-
-            # Create combined results structure
-            combined_results = {
-                "listings": combined_listings,
-                "total_found": len(combined_listings),
+            # Create structured results object
+            structured_results = {
+                "listings": results,
+                "total_found": len(results) * total_pages if total_pages > 0 else len(results),
                 "total_pages": total_pages,
                 "current_page": page,
                 "has_next_page": page < total_pages,
                 "is_complete": page >= total_pages
             }
 
-            # Cache combined results
+            # Cache results if valid
             self.db.cache_results(
-                site="Combined",
+                site="Zoopla",
                 location=location,
                 min_price=min_price,
                 max_price=max_price,
@@ -239,15 +182,250 @@ class ScraperBot:
                 keywords=keywords,
                 listing_type=listing_type,
                 page_number=page,
-                results=combined_results
+                results=structured_results
             )
 
-            return combined_results
+            return structured_results
+
+        except Exception as e:
+            logger.error(f"[Zoopla ERROR] {str(e)}")
+            return None
+
+    async def scrape_all_pages(self, location, min_price, max_price, min_beds, max_beds, listing_type, keywords=""):
+        """Scrape all pages for both sites with improved error handling"""
+        logger.info(f"\n[Scraper Bot] Starting scrape for {location} - {listing_type}")
+        logger.info(f"Price range: £{min_price} - £{max_price}")
+        logger.info(f"Bedrooms: {min_beds}-{max_beds}")
+        if keywords:
+            logger.info(f"Keywords: {keywords}")
+
+        consecutive_empty = 0
+        page = 1
+
+        while page <= self.max_pages:
+            logger.info(f"\n[Scraper Bot] Scraping page {page}")
+
+            # Scrape both sites concurrently
+            rightmove_task = self.scrape_rightmove(
+                location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords
+            )
+            zoopla_task = self.scrape_zoopla(
+                location, min_price, max_price, min_beds, max_beds, listing_type, page, keywords
+            )
+
+            rightmove_results, zoopla_results = await asyncio.gather(
+                rightmove_task, zoopla_task, return_exceptions=True
+            )
+
+            # Check if both sites returned no results
+            if not rightmove_results and not zoopla_results:
+                consecutive_empty += 1
+                logger.warning(f"[Scraper Bot] No results found on page {page} ({consecutive_empty}/{self.max_consecutive_empty})")
+
+                if consecutive_empty >= self.max_consecutive_empty:
+                    logger.info("[Scraper Bot] Stopping due to consecutive empty pages")
+                    break
+            else:
+                consecutive_empty = 0
+
+                # Check if we've reached the last page for both sites
+                if (rightmove_results and rightmove_results.get("is_complete")) and \
+                   (zoopla_results and zoopla_results.get("is_complete")):
+                    logger.info("[Scraper Bot] Reached last page for both sites")
+                    break
+
+            # Add longer delay between pages
+            await asyncio.sleep(random.uniform(5, 8))
+            page += 1
+
+    async def scrape_all_combinations(self):
+        """Scrape all combinations of parameters"""
+        locations = ["london", "manchester", "birmingham", "leeds"]
+        listing_types = ["sale", "rent"]
+        price_ranges = [
+            ("0", "100000"),
+            ("100000", "200000"),
+            ("200000", "300000"),
+            ("300000", "400000"),
+            ("400000", "500000"),
+            ("500000", "1000000")
+        ]
+        bed_ranges = [
+            ("0", "1"),
+            ("2", "2"),
+            ("3", "3"),
+            ("4", "4"),
+            ("5", "5")
+        ]
+        keywords = ["garden", "garage", "parking"]  # Example keywords to search for
+
+        total_combinations = len(locations) * len(listing_types) * len(price_ranges) * len(bed_ranges) * len(keywords)
+        logger.info(f"\n[Scraper Bot] Starting scrape of {total_combinations} combinations")
+        logger.info(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+        for location in locations:
+            for listing_type in listing_types:
+                for min_price, max_price in price_ranges:
+                    for min_beds, max_beds in bed_ranges:
+                        for keyword in keywords:
+                            logger.info(f"\n[Scraper Bot] Processing combination:")
+                            logger.info(f"Location: {location}")
+                            logger.info(f"Type: {listing_type}")
+                            logger.info(f"Price: £{min_price} - £{max_price}")
+                            logger.info(f"Beds: {min_beds}-{max_beds}")
+                            logger.info(f"Keyword: {keyword}")
+
+                            await self.scrape_all_pages(
+                                location=location,
+                                min_price=min_price,
+                                max_price=max_price,
+                                min_beds=min_beds,
+                                max_beds=max_beds,
+                                listing_type=listing_type,
+                                keywords=keyword
+                            )
+
+        logger.info(f"\n[Scraper Bot] Finished scraping all combinations")
+        logger.info(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    async def scrape_combined(self, location, min_price, max_price, min_beds, max_beds, listing_type, page=1, keywords=""):
+        """Scrape both sites concurrently and return combined, deduplicated results"""
+        try:
+            logger.info(f"\n[Scraper Bot] Starting combined scrape for {location} - {listing_type}")
+            logger.info(f"Price range: £{min_price} - £{max_price}")
+            logger.info(f"Bedrooms: {min_beds}-{max_beds}")
+            if keywords:
+                logger.info(f"Keywords: {keywords}")
+
+            # Create Rightmove URL
+            rightmove_url = get_final_rightmove_results_url(
+                location=location,
+                min_price=min_price,
+                max_price=max_price,
+                min_beds=min_beds,
+                max_beds=max_beds,
+                radius=self.radius,
+                include_sold=self.include_sold,
+                listing_type=listing_type,
+                page=page
+            )
+
+            # Scrape both sites concurrently
+            logger.info("[Combined] Starting concurrent scraping...")
+            rightmove_task = asyncio.create_task(
+                self.scrape_rightmove(
+                    location=location,
+                    min_price=min_price,
+                    max_price=max_price,
+                    min_beds=min_beds,
+                    max_beds=max_beds,
+                    listing_type=listing_type,
+                    page=page,
+                    keywords=keywords
+                )
+            )
+
+            zoopla_task = asyncio.create_task(
+                self.scrape_zoopla(
+                    location=location,
+                    min_price=min_price,
+                    max_price=max_price,
+                    min_beds=min_beds,
+                    max_beds=max_beds,
+                    listing_type=listing_type,
+                    page=page,
+                    keywords=keywords
+                )
+            )
+
+            # Wait for both tasks to complete
+            rightmove_results = await rightmove_task
+            zoopla_results = await zoopla_task
+
+            # Initialize empty results if either scraper failed
+            if not rightmove_results:
+                rightmove_results = {"listings": [], "total_pages": 1}
+            if not zoopla_results:
+                zoopla_results = {"listings": [], "total_pages": 1}
+
+            # Extract listings and metadata
+            rightmove_listings = rightmove_results.get("listings", [])
+            zoopla_listings = zoopla_results.get("listings", []) if isinstance(zoopla_results, dict) else []
+
+            # Create unique identifier for each listing
+            unique_listings = {}
+            
+            # Process Rightmove listings
+            for listing in rightmove_listings:
+                key = (
+                    listing.get("price", "").lower(),
+                    listing.get("address", "").lower()
+                )
+                if key not in unique_listings:
+                    unique_listings[key] = listing
+
+            # Process Zoopla listings
+            for listing in zoopla_listings:
+                key = (
+                    listing.get("price", "").lower(),
+                    listing.get("address", "").lower()
+                )
+                if key not in unique_listings:
+                    unique_listings[key] = listing
+
+            # Get final deduplicated list
+            combined_listings = list(unique_listings.values())
+
+            # Calculate stats
+            rightmove_total = len(rightmove_listings)
+            zoopla_total = len(zoopla_listings)
+            
+            site_stats = {
+                "rightmove": {
+                    "total_found": rightmove_total,
+                    "processed": len(rightmove_listings)
+                },
+                "zoopla": {
+                    "total_found": zoopla_total,
+                    "processed": len(zoopla_listings)
+                }
+            }
+
+            # Get total pages from both sources
+            rightmove_total_pages = rightmove_results.get("total_pages", 1)
+            zoopla_total_pages = (
+                zoopla_results.get("total_pages", 1) 
+                if isinstance(zoopla_results, dict) 
+                else 1
+            )
+
+            logger.info(f"[Combined] Found {len(combined_listings)} unique listings")
+            logger.info(f"[Combined] Rightmove: {rightmove_total} listings")
+            logger.info(f"[Combined] Zoopla: {zoopla_total} listings")
+
+            return {
+                "listings": combined_listings,
+                "site_stats": site_stats,
+                "total_found": len(combined_listings),
+                "total_pages": max(rightmove_total_pages, zoopla_total_pages),
+                "current_page": page,
+                "has_next_page": page < max(rightmove_total_pages, zoopla_total_pages)
+            }
 
         except Exception as e:
             logger.error(f"[Combined ERROR] {str(e)}")
-            return None
+            return {
+                "listings": [],
+                "site_stats": {},
+                "total_found": 0,
+                "total_pages": 1,
+                "current_page": page,
+                "has_next_page": False
+            }
+
+async def main():
+    bot = ScraperBot()
+    await bot.scrape_all_combinations()
 
 if __name__ == "__main__":
-    bot = ScraperBot()
-    asyncio.run(bot.scrape_combined("london", "0", "1000000", "1", "3", "sale"))
+    asyncio.run(main())

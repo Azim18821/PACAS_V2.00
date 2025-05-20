@@ -15,29 +15,6 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # Create users table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        email TEXT UNIQUE NOT NULL,
-                        password_hash BLOB NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Create saved_listings table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS saved_listings (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL,
-                        listing_id TEXT NOT NULL,
-                        saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id),
-                        UNIQUE(user_id, listing_id)
-                    )
-                ''')
-                
                 # Create listings table if it doesn't exist
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS listings (

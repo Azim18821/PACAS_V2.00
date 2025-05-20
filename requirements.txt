@@ -12,10 +12,3 @@ asyncio==3.4.3
 asgiref==3.7.2
 uvicorn==0.24.0
 apify-client
-flask-bcrypt
-flask-login
-flask-wtf
-flask-bcrypt
-flask-login
-flask-wtf
-flask-limiter

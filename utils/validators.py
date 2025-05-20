@@ -28,19 +28,19 @@ VALID_LOCATIONS = [
     # London areas
     'London', 'Central London', 'North London', 'South London', 'East London', 'West London',
     'Camden', 'Kensington', 'Chelsea', 'Westminster', 'Greenwich', 'Richmond', 'Hackney',
-
+    
     # Major cities
     'Manchester', 'Liverpool', 'Birmingham', 'Leeds', 'Glasgow', 'Edinburgh', 'Cardiff',
     'Bristol', 'Sheffield', 'Nottingham', 'Leicester', 'Coventry', 'Hull', 'Newcastle',
-
+    
     # Areas around major cities
     'Greater Manchester', 'Merseyside', 'West Midlands', 'West Yorkshire', 'Greater Glasgow',
     'Lothian', 'South Gloucestershire', 'South Yorkshire', 'Nottinghamshire', 'Leicestershire',
-
+    
     # Other major areas
     'Brighton', 'Bath', 'Oxford', 'Cambridge', 'York', 'Belfast', 'Aberdeen', 'Dundee',
     'Exeter', 'Plymouth', 'Southampton', 'Portsmouth', 'Norwich', 'Leicester', 'Derby',
-
+    
     # Counties
     'Surrey', 'Kent', 'Essex', 'Hertfordshire', 'Buckinghamshire', 'Berkshire', 'Hampshire',
     'Sussex', 'Devon', 'Cornwall', 'Somerset', 'Dorset', 'Wiltshire', 'Gloucestershire',
@@ -54,7 +54,7 @@ def validate_price_range(min_price: str, max_price: str, listing_type: str = "sa
         # Convert to float for validation only
         min_price_float = float(min_price) if min_price else 0
         max_price_float = float(max_price) if max_price else 10000000  # Default to 10M for all listings
-
+        
         if min_price_float < 0:
             logger.error(f"Invalid minimum price: {min_price}")
             raise ValidationError("Minimum price cannot be negative", "min_price")
@@ -64,7 +64,7 @@ def validate_price_range(min_price: str, max_price: str, listing_type: str = "sa
         if listing_type == "rent" and site == "rightmove" and max_price_float > 20000:
             logger.warning(f"Price capped at 20K for Rightmove rentals: {max_price}")
             max_price_float = 20000
-
+            
         # Convert to integers to remove decimal points, then to strings
         return str(int(min_price_float)), str(int(max_price_float))
     except ValueError as e:
@@ -76,14 +76,14 @@ def validate_bed_range(min_beds: str, max_beds: str) -> Tuple[int, int]:
     try:
         min_beds = int(min_beds) if min_beds else 0
         max_beds = int(max_beds) if max_beds else 10  # Use 10 instead of infinity
-
+        
         if min_beds < 0:
             logger.error(f"Invalid minimum beds: {min_beds}")
             raise ValidationError("Minimum beds cannot be negative", "min_beds")
         if max_beds < min_beds:
             logger.error(f"Invalid bed range: min={min_beds}, max={max_beds}")
             raise ValidationError("Maximum beds must be greater than minimum beds", "max_beds")
-
+            
         return min_beds, max_beds
     except ValueError as e:
         logger.error(f"Bed format error: min={min_beds}, max={max_beds}")
@@ -94,10 +94,10 @@ def validate_location(location: str) -> str:
     if not location or not location.strip():
         logger.error("Empty location provided")
         raise ValidationError("Please enter a location", "location")
-
+    
     # Clean the location string
     location = location.strip()
-
+    
     # First check if it's a postcode (before any other validation)
     if any(c.isdigit() for c in location):
         # If it contains numbers, treat it as a potential postcode
@@ -107,17 +107,17 @@ def validate_location(location: str) -> str:
         else:
             logger.error(f"Invalid postcode format: {location}")
             raise ValidationError("Invalid postcode format", "location")
-
+    
     # If no numbers present, validate as a city/area name
     if len(location) < 2:
         logger.error(f"Location too short: {location}")
         raise ValidationError("Location must be at least 2 characters", "location")
-
+    
     # For city/area names, only allow letters, spaces, and commas
     if not all(c.isalpha() or c.isspace() or c == ',' for c in location):
         logger.error(f"Invalid location format: {location}")
         raise ValidationError("Location can only contain letters, spaces, and commas", "location")
-
+    
     # Check if location is in valid locations list
     normalized_location = location.lower()
     is_valid = any(
@@ -125,14 +125,14 @@ def validate_location(location: str) -> str:
         normalized_location in valid_loc.lower()
         for valid_loc in VALID_LOCATIONS
     )
-
+    
     if not is_valid:
         logger.error(f"Invalid location: {location}")
         raise ValidationError(
             f"'{location}' is not a valid UK location. Please enter a valid city, area, county, or postcode.",
             "location"
         )
-
+    
     return location
 
 def validate_listing_type(listing_type: str) -> str:
@@ -143,29 +143,51 @@ def validate_listing_type(listing_type: str) -> str:
         raise ValidationError(f"Invalid listing type. Must be one of: {', '.join(valid_types)}", "listing_type")
     return listing_type
 
-def validate_search_params(params):
-    """Validate search parameters"""
+def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate all search parameters."""
     try:
-        # Set default values if not provided
-        params = {
-            'site': params.get('site', 'rightmove'),
-            'location': params.get('location', ''),
-            'listing_type': params.get('listing_type', 'sale'),
-            'min_price': params.get('min_price', '0'),
-            'max_price': params.get('max_price', '10000000'),
-            'min_beds': params.get('min_beds', '0'),
-            'max_beds': params.get('max_beds', '10'),
-            'keywords': params.get('keywords', '')
+        logger.info(f"Validating search parameters: {data}")
+        
+        location = validate_location(data.get("location", ""))
+        listing_type = validate_listing_type(data.get("listing_type", "sale"))
+        site = data.get("site", "zoopla")
+        
+        # Validate site option
+        if site not in ["zoopla", "rightmove", "combined"]:
+            raise ValidationError(f"Invalid site option: {site}. Must be one of: zoopla, rightmove, combined")
+        
+        min_price, max_price = validate_price_range(
+            data.get("min_price", ""),
+            data.get("max_price", ""),
+            listing_type,
+            site
+        )
+        
+        min_beds, max_beds = validate_bed_range(
+            data.get("min_beds", ""),
+            data.get("max_beds", "")
+        )
+        
+        validated_data = {
+            "location": location,
+            "min_price": min_price,
+            "max_price": max_price,
+            "min_beds": min_beds,
+            "max_beds": max_beds,
+            "listing_type": listing_type,
+            "keywords": data.get("keywords", "").strip(),
+            "site": site
         }
-
-        if not params['location']:
-            raise ValidationError("Location is required")
-
-        return params
-
-    except Exception as e:
+        
+        logger.info(f"Validation successful: {validated_data}")
+        return validated_data
+        
+    except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
-        raise ValidationError(str(e))
+        raise ValidationError(f"Invalid search parameters: {str(e)}", e.field)
+    except Exception as e:
+        logger.error(f"Unexpected error during validation: {str(e)}")
+        raise ValidationError("An unexpected error occurred during validation")
 
 # Rate limiting implementation
 class RateLimiter:
@@ -178,18 +200,18 @@ class RateLimiter:
         now = time.time()
         if ip not in self.requests:
             self.requests[ip] = []
-
+        
         # Remove old requests
         self.requests[ip] = [req_time for req_time in self.requests[ip] 
                            if now - req_time < self.time_window]
-
+        
         # Check if rate limit is exceeded
         if len(self.requests[ip]) >= self.max_requests:
             return True
-
+        
         # Add new request
         self.requests[ip].append(now)
         return False
 
 # Create a global rate limiter instance
-rate_limiter = RateLimiter()
+rate_limiter = RateLimiter() 

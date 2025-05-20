@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
             print("\n[Rightmove DEBUG] No property cards found. Full HTML:")
             print(soup.prettify())
 
-        # Check for "no results" message
+        # Check for "This isn't the place you're looking for" message
         no_results_message = soup.select_one(".no-results-message")
         if no_results_message and "This isn't the place you're looking for" in no_results_message.text:
             print("[Rightmove] No results found for this search combination")
@@ -50,7 +50,7 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
         # Check if this is a rental listing
         is_rental = "property-to-rent" in url
         print(f"[Rightmove] Is rental listing: {is_rental}")
-
+        
         # Get total number of results first
         total_results = 0
         results_count = soup.select_one(".searchHeader-resultCount")
@@ -68,74 +68,51 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
             total_pages = (total_results + 23) // 24 if total_results > 0 else 247
             return total_pages
 
-        # Improved selectors for property cards
-        cards = (
-            soup.select("[data-test='propertyCard']") or
-            soup.select(".propertyCard") or 
-            soup.select(".l-searchResult") or
-            soup.select(".PropertyCard_propertyCardContainer__VSRSA") or
-            soup.select(".is-list") or
-            soup.select(".l-searchResult") or
-            soup.select("[data-test='property-details']")
-        )
-
-        # Log the search attempt
-        print(f"[Rightmove] Found {len(cards)} property cards using improved selectors")
-
-        print(f"[Rightmove] Found {len(cards)} property cards on page {page}")
-
-        # Debug: Print first card HTML if found
-        if cards:
-            print("\n[Rightmove DEBUG] First card HTML:")
-            print(cards[0].prettify())
+        if is_rental:
+            # Selectors for rental listings
+            cards = soup.select(".PropertyCard_propertyCardContainer__VSRSA")
+            print(f"[Rightmove] Found {len(cards)} rental property cards on page {page}")
+            
+            # Debug: Print first card HTML if found
+            if cards:
+                print("\n[Rightmove DEBUG] First card HTML:")
+                print(cards[0].prettify())
+        else:
+            # Original selectors for sale listings
+            cards = soup.select(".l-searchResult")
+            print(f"[Rightmove] Found {len(cards)} property cards on page {page}")
+            
+            # Debug: Print first card HTML if found
+            if cards:
+                print("\n[Rightmove DEBUG] First card HTML:")
+                print(cards[0].prettify())
 
         listings = []
         for idx, card in enumerate(cards):
             try:
-                # Unified selectors for both rental and sale
-                price = (
-                    card.select_one("[data-test='property-price']") or
-                    card.select_one(".PropertyPrice_price__VL65t") or
-                    card.select_one(".propertyCard-priceValue") or
-                    card.select_one(".price-text")
-                )
-
-                title = (
-                    card.select_one("[data-test='property-title']") or
-                    card.select_one(".PropertyAddress_address__LYRPq") or
-                    card.select_one(".propertyCard-title") or
-                    card.select_one(".property-title")
-                )
-
-                address = (
-                    card.select_one("[data-test='property-address']") or
-                    card.select_one(".propertyCard-address") or
-                    card.select_one(".property-address")
-                )
-
-                desc = (
-                    card.select_one("[data-test='property-description']") or
-                    card.select_one(".PropertyCardSummary_summary__oIv57") or
-                    card.select_one(".propertyCard-description") or
-                    card.select_one(".property-description")
-                )
-
-                link_tag = (
-                    card.select_one("[data-test='property-link']") or
-                    card.select_one("a.propertyCard-link") or
-                    card.select_one("a[href*='/properties/']")
-                )
-
-                # Get image
-                image = ""
-                img = (
-                    card.select_one("[data-test='property-image'] img") or
-                    card.select_one(".PropertyCardImage_slide__B8bBX img") or
-                    card.select_one('img[itemprop="image"]') or
-                    card.select_one(".property-image img")
-                )
-                if img and img.has_attr("src"):
-                    image = img["src"]
+                if is_rental:
+                    # Selectors for rental listings
+                    price = card.select_one(".PropertyPrice_price__VL65t")
+                    title = card.select_one(".PropertyAddress_address__LYRPq")
+                    desc = card.select_one(".PropertyCardSummary_summary__oIv57")
+                    link_tag = card.select_one("a.propertyCard-link")
+                    
+                    # Get image from the first slide
+                    image = ""
+                    img = card.select_one(".PropertyCardImage_slide__B8bBX img")
+                    if img and img.has_attr("src"):
+                        image = img["src"]
+                else:
+                    # Original selectors for sale listings
+                    price = card.select_one(".propertyCard-priceValue")
+                    title = card.select_one(".propertyCard-title")
+                    address = card.select_one(".propertyCard-address")
+                    desc = card.select_one(".propertyCard-description")
+                    link_tag = card.select_one("a.propertyCard-link")
+                    image = ""
+                    img = card.select_one('img[itemprop="image"]')
+                    if img and img.has_attr("src"):
+                        image = img["src"]
 
                 # Debug: Print extracted elements
                 print(f"\n[Rightmove DEBUG] Card {idx + 1} elements:")
@@ -153,7 +130,7 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
                         property_url = href
                     else:
                         property_url = "https://www.rightmove.co.uk" + href
-
+                    
                     # Extract property ID from URL (e.g., /properties/123456789.html)
                     try:
                         property_id = href.split("/")[-1].split(".")[0]
@@ -172,16 +149,16 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
                     "property_id": property_id,
                     "source": "Rightmove"
                 }
-
+                
                 listings.append(listing)
-
+                
                 # Print each listing as it's scraped
                 print(f"\n[Rightmove] Scraped listing {idx + 1}:")
                 print(f"Title: {listing['title']}")
                 print(f"Price: {listing['price']}")
                 print(f"Property ID: {listing['property_id']}")
                 print(f"URL: {listing['url']}")
-
+                
             except Exception as e:
                 print(f"[Rightmove Listing Error] Card {idx + 1}:", e)
 
@@ -201,30 +178,15 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
         print(f"[Rightmove] Current page: {page}")
         print(f"[Rightmove] Has next page: {page < total_pages}")
 
-        # If we found listings, mark the results as valid
-        if len(listings) > 0:
-            print(f"[Rightmove] Found {len(listings)} valid listings")
-            return {
-                "listings": listings,
-                "total_found": total_results,
-                "total_pages": total_pages,
-                "current_page": page,
-                "has_next_page": page < total_pages,
-                "is_complete": page >= total_pages,
-                "no_results": False
-            }
-        else:
-            return {
-                "listings": listings,
-                "total_found": total_results,
-                "total_pages": total_pages,
-                "current_page": page,
-                "has_next_page": page < total_pages,
-                "is_complete": page >= total_pages,
-                "no_results": True
-            }
-
-
+        return {
+            "listings": listings,
+            "total_found": total_results,
+            "total_pages": total_pages,
+            "current_page": page,
+            "has_next_page": page < total_pages,
+            "is_complete": page >= total_pages
+        }
+        
     except Exception as e:
         print("[Rightmove ERROR]", e)
         return {
