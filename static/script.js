@@ -309,23 +309,17 @@ async function performSearch() {
 
         // Handle validation errors
         if (!response.ok) {
-            let errorMessage = 'Failed to perform search';
-            try {
-                if (data && data.error) {
-                    errorMessage = data.error;
-                }
-            } catch (e) {
-                console.error('Error parsing response:', e);
+            if (response.status === 400 && data.error) {
+                locationError.textContent = data.error;
+                locationError.classList.add('show');
+                document.getElementById("location").classList.add('error');
+            } else {
+                console.error('Search error:', data);
+                resultsContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>Error: ${data.error || 'Failed to perform search'}</p>
+                    </div>`;
             }
-            
-            locationError.textContent = errorMessage;
-            locationError.classList.add('show');
-            document.getElementById("location").classList.add('error');
-            
-            resultsContainer.innerHTML = `
-                <div class="error-message">
-                    <p>Error: ${errorMessage}</p>
-                </div>`;
             return;
         }
 
