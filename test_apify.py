@@ -1,27 +1,31 @@
-from apify_client import ApifyClient
 
-client = ApifyClient("apify_api_1a4jEwUXsMNvw5IK8lDrJM2GUFTOBQ2RQpmd")
+from scrapers.openrent import scrape_openrent
+import json
 
-run_input = {
-    "listUrls": [
-        { "url": "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=OUTCODE%5E2445" }
-    ],
-    "propertyUrls": [],
-    "fullScrape": True,
-    "monitoringMode": False,
-    "deduplicateAtTaskLevel": False,
-    "fullPropertyDetails": True,
-    "includePriceHistory": False,
-    "includeNearestSchools": False,
-    "enableDelistingTracker": False,
-    "addEmptyTrackerRecord": False,
-    "maxProperties": 1000,
-    "proxy": { "useApifyProxy": True }
-}
+def test_openrent():
+    # Test parameters
+    location = "manchester"
+    min_price = "500"
+    max_price = "2000" 
+    min_beds = "1"
+    
+    print("Testing OpenRent scraper...")
+    results = scrape_openrent(
+        location=location,
+        min_price=min_price,
+        max_price=max_price,
+        min_beds=min_beds
+    )
+    
+    # Print results in a readable format
+    if results and len(results['listings']) > 0:
+        print(f"\nFound {len(results['listings'])} listings")
+        print(f"Total pages: {results['total_pages']}")
+        print("\nFirst listing details:")
+        first = results['listings'][0]
+        print(json.dumps(first, indent=2))
+    else:
+        print("No results found")
 
-# Run the actor
-run = client.actor("jKpgGfgRfzrGgEMa8").call(run_input=run_input)
-
-# Fetch results
-for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-    print(item["title"], "-", item["price"], "-", item["url"])
+if __name__ == "__main__":
+    test_openrent()
