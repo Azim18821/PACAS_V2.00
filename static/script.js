@@ -1,4 +1,4 @@
-﻿// Add scroll handler for results header
+// Add scroll handler for results header
 document.addEventListener('DOMContentLoaded', function() {
     const resultsHeader = document.querySelector('.results-header');
     let lastScrollTop = 0;
@@ -421,6 +421,15 @@ function changePage(direction) {
     
     // Update the display
     displayCurrentPage();
+    
+    // Scroll to results section smoothly
+    const searchResults = document.querySelector('.section');
+    if (searchResults) {
+        window.scrollTo({
+            top: searchResults.offsetTop - 20,
+            behavior: 'smooth'
+        });
+    }
 }
 
 function createListingCard(listing) {
