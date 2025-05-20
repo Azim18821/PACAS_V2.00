@@ -1,8 +1,5 @@
-from flask import Flask, request, jsonify, render_template, Response, redirect, url_for, flash
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
-import sqlite3
-from flask_bcrypt import Bcrypt
-from flask_cors import CORS, cross_origin
+from flask import Flask, request, jsonify, render_template, Response
+from flask_cors import CORS
 from dotenv import load_dotenv
 from scrapers.zoopla import scrape_zoopla, scrape_zoopla_first_page, scrape_zoopla_page
 from scrapers.rightmove_scrape import scrape_rightmove_from_url
@@ -31,16 +28,11 @@ app = Flask('app')
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['WTF_CSRF_SECRET_KEY'] = secrets.token_hex(32)
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 csrf = CSRFProtect(app)
-csrf.exempt("search")  # Exempt search endpoint from CSRF
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.init_app(app)
-
-# Exempt search endpoints from login requirement 
-app.config['LOGIN_DISABLED'] = True
 
 limiter = Limiter(
     get_remote_address,
@@ -145,91 +137,16 @@ async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, 
 def home():
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        user = User.get_by_email(email)
-        if user and user.check_password(password):
-            login_user(user)
-            flash('Logged in successfully.')
-            return redirect(url_for('home'))
-        else:
-            flash('Invalid email or password.')
-
-    return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        if User.get_by_email(email):
-            flash('Email already registered.')
-            return redirect(url_for('register'))
-
-        if User.create_user(username, email, password):
-            flash('Registration successful. Please login.')
-            return redirect(url_for('login'))
-        else:
-            flash('Registration failed.')
-
-    return render_template('register.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
-
-@app.route('/api/search', methods=['POST', 'OPTIONS'])
-@limiter.limit("50/hour")
-@cross_origin()
+@app.route('/api/search', methods=['POST'])
+@limiter.limit("50/hour") #Example rate limit
 async def search():
     """Handle property search requests"""
     try:
-        # Handle preflight requests
-        if request.method == 'OPTIONS':
-            response = app.make_default_options_response()
-            response.headers['Access-Control-Allow-Methods'] = 'POST'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-            return response
-
-        # Disable login requirement for search API
-        login_manager.login_view = None
-
         # Get search parameters from request
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({"error": "Invalid JSON data"}), 400
-        except Exception as e:
-            logger.error(f"Error parsing JSON: {str(e)}")
-            return jsonify({"error": "Invalid JSON data"}), 400
-
-        if not data:
-            logger.error("No JSON data received")
-            return jsonify({"error": "No search parameters provided"}), 400
-
-        # Validate required fields
-        location = data.get('location')
-        if not location or not location.strip():
-            return jsonify({"error": "Location is required"}), 400
-
+        data = request.get_json()
         logger.info("Received search request: %s", data)
 
-        # Check required fields
-        required_fields = ['site', 'location', 'listing_type']
-        for field in required_fields:
-            if not data.get(field):
-                logger.error(f"Missing required field: {field}")
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-
-        # Validate search parameters  
+        # Validate search parameters
         try:
             validated_data = validate_search_params(data)
             logger.info("Validated search parameters: %s", validated_data)

@@ -2,21 +2,42 @@ import sqlite3
 import json
 from datetime import datetime, timedelta
 from utils.logger import logger
-import bcrypt # Added import for password hashing
 
 class Database:
     def __init__(self):
         """Initialize database connection"""
-        self.db_path = 'cache.db'
+        self.db_path = 'listings.db'  # Changed from 'utils/listings.db'
         self.init_db()
-        self.init_user_table()
 
     def init_db(self):
         """Initialize the database and create tables if they don't exist"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-
+                
+                # Create users table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        password_hash BLOB NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                # Create saved_listings table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS saved_listings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        listing_id TEXT NOT NULL,
+                        saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id),
+                        UNIQUE(user_id, listing_id)
+                    )
+                ''')
+                
                 # Create listings table if it doesn't exist
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS listings (
@@ -35,47 +56,29 @@ class Database:
                         UNIQUE(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number)
                     )
                 ''')
-
+                
                 # Check if page_number column exists
                 cursor.execute("PRAGMA table_info(listings)")
                 columns = [column[1] for column in cursor.fetchall()]
-
+                
                 if 'page_number' not in columns:
                     # Add page_number column if it doesn't exist
                     cursor.execute('ALTER TABLE listings ADD COLUMN page_number INTEGER')
                     # Update existing rows to have page_number = 1
                     cursor.execute('UPDATE listings SET page_number = 1 WHERE page_number IS NULL')
-
+                
                 # Create index for faster lookups
                 cursor.execute('''
                     CREATE INDEX IF NOT EXISTS idx_listings_search 
                     ON listings(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number)
                 ''')
-
+                
                 conn.commit()
                 logger.info("Database initialized successfully")
-
+                
         except Exception as e:
             logger.error("Error initializing database: %s", str(e))
             raise
-
-    def init_user_table(self):
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        email TEXT UNIQUE NOT NULL,
-                        password_hash BLOB NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                conn.commit()
-                logger.info("Users table initialized successfully") #Added logging
-        except Exception as e:
-            logger.error(f"Error creating user table: {e}") #Improved error handling
 
     def get_cached_results(self, site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number):
         """Get cached results if they exist and are not too old"""
@@ -97,10 +100,10 @@ class Database:
                 clean_param(listing_type),
                 page_number
             ]
-
+            
             # Log the parameters being used
             logger.info("Checking cache with parameters: %s", params)
-
+            
             # Use parameterized query with proper NULL handling
             query = """
                 SELECT results, created_at
@@ -116,7 +119,7 @@ class Database:
                 AND page_number = ?
                 AND created_at > datetime('now', '-24 hours')
             """
-
+            
             # Double the parameters for NULL comparison (except site, min_beds, max_beds, and page_number)
             query_params = [params[0]]  # Add site parameter first
             for i, param in enumerate(params[1:-1]):  # Exclude site and page_number
@@ -125,16 +128,16 @@ class Database:
                 else:
                     query_params.extend([param, param])  # Add twice for NULL comparison
             query_params.append(params[-1])  # Add page_number last
-
+            
             # Log the query and parameters
             logger.info("Executing query: %s", query)
             logger.info("With parameters: %s", query_params)
-
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, query_params)
                 result = cursor.fetchone()
-
+                
                 if result:
                     results, created_at = result
                     logger.info("Found cached results from %s", created_at)
@@ -142,7 +145,7 @@ class Database:
                 else:
                     logger.info("No valid cached results found")
                     return None
-
+                
         except Exception as e:
             logger.error("Error getting cached results: %s", str(e))
             return None
@@ -168,23 +171,23 @@ class Database:
                 page_number,
                 json.dumps(results)
             ]
-
+            
             # Log the parameters being cached
             logger.info("Attempting to cache results with parameters: %s", params[:-1])  # Exclude results from log
-
+            
             # Use INSERT OR REPLACE to handle duplicates
             query = """
                 INSERT OR REPLACE INTO listings 
                 (site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number, results, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """
-
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, params)
                 conn.commit()
                 logger.info("Successfully cached results for site: %s, location: %s, page: %d", site, location, page_number)
-
+                
         except Exception as e:
             logger.error("Error caching results: %s", str(e))
             logger.error("Parameters that caused error: site=%s, location=%s, min_price=%s, max_price=%s, min_beds=%s, max_beds=%s, keywords=%s, listing_type=%s, page=%d",
@@ -195,18 +198,18 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-
+                
                 cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
                 cursor.execute('''
                     DELETE FROM listings 
                     WHERE created_at < ?
                 ''', (cutoff_time.isoformat(),))
-
+                
                 deleted_count = cursor.rowcount
                 conn.commit()
                 logger.info(f"Cleaned up {deleted_count} old results")
-
+                
         except Exception as e:
             logger.error(f"Error cleaning up old results: {str(e)}")
             # Don't raise the exception, just log it
-            pass
+            pass 

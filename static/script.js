@@ -252,7 +252,7 @@ sortBy.addEventListener('change', () => {
 });
 
 async function performSearch() {
-    const locationInput = document.getElementById("location").value;
+    const location = document.getElementById("location").value;
     const keywords = document.getElementById("keywords").value;
     const minBeds = document.getElementById("min_beds").value;
     const maxBeds = document.getElementById("max_beds").value;
@@ -260,21 +260,6 @@ async function performSearch() {
     const locationError = document.getElementById("location-error");
     const resultsContainer = document.getElementById("results");
     const resultsCount = document.getElementById("results-count");
-    const progressDiv = document.getElementById("progress");
-
-
-    // Create search parameters object
-    const searchParams = {
-        site: document.getElementById("site").value || 'zoopla',
-        location: locationInput,
-        listing_type: document.getElementById("listing_type").value || 'sale',
-        min_price: document.getElementById("min_price").value || '0',
-        max_price: document.getElementById("max_price").value || '10000000',
-        min_beds: minBeds || '0',
-        max_beds: maxBeds || '10',
-        keywords: keywords || '',
-        sort_by: document.getElementById("sort_by").value || 'newest'
-    };
 
     // Clear previous error, results, pagination, and count
     locationError.textContent = "";
@@ -282,40 +267,6 @@ async function performSearch() {
     paginationContainer.innerHTML = ""; // Clear pagination
     showMoreButton.style.display = "none"; // Hide show more button
     resultsCount.textContent = ""; // Clear the results count
-
-    try {
-        const response = await fetch('/api/search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(searchParams)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Search failed');
-        }
-        return data;
-    } catch (error) {
-        console.error('Search error:', error);
-        resultsContainer.innerHTML = `
-            <div class="error-message">
-                <p>An error occurred while searching. Please try again.</p>
-                <p class="error-details">${error.message}</p>
-            </div>`;
-        throw error;
-    }
-    paginationContainer.innerHTML = ""; // Clear pagination
-    showMoreButton.style.display = "none"; // Hide show more button
-    resultsCount.textContent = ""; // Clear the results count
-
-    if (!locationInput) {
-        locationError.textContent = "Please enter a location";
-        return;
-    }
 
     // Reset pagination state
     currentPage = 1;
@@ -334,15 +285,15 @@ async function performSearch() {
 
         // Prepare search parameters
         const searchParams = {
-            site: site.value || 'zoopla',
-            location: locationInput || '',
-            listing_type: listingType.value || 'sale',
-            min_price: minPrice.value || '0',
-            max_price: maxPrice.value || '10000000',
-            min_beds: minBeds || '0',
-            max_beds: maxBeds || '10',
-            keywords: keywords || '',
-            sort_by: sortBy.value || 'newest'
+            site: site.value,
+            location: location,
+            listing_type: listingType.value,
+            min_price: minPrice.value,
+            max_price: maxPrice.value,
+            min_beds: minBeds,
+            max_beds: maxBeds,
+            keywords: keywords,
+            sort_by: sortBy.value
         };
 
         // Make API call
@@ -742,7 +693,8 @@ function updateResults(listings, totalFound, totalPages, currentPage, isComplete
             <div class="no-results">
                 <h3>No properties found</h3>
                 <p>Try adjusting your search criteria</p>
-            </div>`;        showMoreButton.style.display = 'none';
+            </div>`;
+        showMoreButton.style.display = 'none';
         paginationContainer.style.display = 'none';
         return;
     }
