@@ -87,9 +87,25 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
                 img_elem = card.select_one("img.propertyPic")
                 image_url = img_elem.get('data-src') or img_elem.get('src') if img_elem else ""
 
-                # Extract price
-                price_elem = card.select_one(".price")
-                price = price_elem.text.strip() if price_elem else "Price not specified"
+                # Extract price with multiple fallback selectors
+                price_elem = (
+                    card.select_one(".price") or
+                    card.select_one(".propertyPrice") or
+                    card.select_one("[data-price]") or
+                    card.select_one("span.per-month")
+                )
+                
+                price = "Price not specified"
+                if price_elem:
+                    price_text = price_elem.text.strip()
+                    # Clean up price text and ensure £ symbol
+                    if price_text:
+                        price_text = price_text.replace("pcm", "").replace("per month", "").strip()
+                        if not price_text.startswith("£"):
+                            price_text = f"£{price_text}"
+                        if "pcm" not in price_text.lower():
+                            price_text += " pcm"
+                        price = price_text
 
                 # Extract title and address
                 title_elem = card.select_one(".banda")
