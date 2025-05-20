@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
@@ -68,51 +68,66 @@ def scrape_rightmove_from_url(url, page=1, get_total_only=False):
             total_pages = (total_results + 23) // 24 if total_results > 0 else 247
             return total_pages
 
-        if is_rental:
-            # Selectors for rental listings
-            cards = soup.select(".PropertyCard_propertyCardContainer__VSRSA")
-            print(f"[Rightmove] Found {len(cards)} rental property cards on page {page}")
-            
-            # Debug: Print first card HTML if found
-            if cards:
-                print("\n[Rightmove DEBUG] First card HTML:")
-                print(cards[0].prettify())
-        else:
-            # Original selectors for sale listings
-            cards = soup.select(".l-searchResult")
-            print(f"[Rightmove] Found {len(cards)} property cards on page {page}")
-            
-            # Debug: Print first card HTML if found
-            if cards:
-                print("\n[Rightmove DEBUG] First card HTML:")
-                print(cards[0].prettify())
+        # Use unified selector for both rental and sale listings
+        cards = soup.select("[data-test='propertyCard']")
+        if not cards:
+            # Fallback selectors
+            cards = soup.select(".propertyCard") or soup.select(".l-searchResult") or soup.select(".PropertyCard_propertyCardContainer__VSRSA")
+        
+        print(f"[Rightmove] Found {len(cards)} property cards on page {page}")
+        
+        # Debug: Print first card HTML if found
+        if cards:
+            print("\n[Rightmove DEBUG] First card HTML:")
+            print(cards[0].prettify())
 
         listings = []
         for idx, card in enumerate(cards):
             try:
-                if is_rental:
-                    # Selectors for rental listings
-                    price = card.select_one(".PropertyPrice_price__VL65t")
-                    title = card.select_one(".PropertyAddress_address__LYRPq")
-                    desc = card.select_one(".PropertyCardSummary_summary__oIv57")
-                    link_tag = card.select_one("a.propertyCard-link")
-                    
-                    # Get image from the first slide
-                    image = ""
-                    img = card.select_one(".PropertyCardImage_slide__B8bBX img")
-                    if img and img.has_attr("src"):
-                        image = img["src"]
-                else:
-                    # Original selectors for sale listings
-                    price = card.select_one(".propertyCard-priceValue")
-                    title = card.select_one(".propertyCard-title")
-                    address = card.select_one(".propertyCard-address")
-                    desc = card.select_one(".propertyCard-description")
-                    link_tag = card.select_one("a.propertyCard-link")
-                    image = ""
-                    img = card.select_one('img[itemprop="image"]')
-                    if img and img.has_attr("src"):
-                        image = img["src"]
+                # Unified selectors for both rental and sale
+                price = (
+                    card.select_one("[data-test='property-price']") or
+                    card.select_one(".PropertyPrice_price__VL65t") or
+                    card.select_one(".propertyCard-priceValue") or
+                    card.select_one(".price-text")
+                )
+                
+                title = (
+                    card.select_one("[data-test='property-title']") or
+                    card.select_one(".PropertyAddress_address__LYRPq") or
+                    card.select_one(".propertyCard-title") or
+                    card.select_one(".property-title")
+                )
+                
+                address = (
+                    card.select_one("[data-test='property-address']") or
+                    card.select_one(".propertyCard-address") or
+                    card.select_one(".property-address")
+                )
+                
+                desc = (
+                    card.select_one("[data-test='property-description']") or
+                    card.select_one(".PropertyCardSummary_summary__oIv57") or
+                    card.select_one(".propertyCard-description") or
+                    card.select_one(".property-description")
+                )
+                
+                link_tag = (
+                    card.select_one("[data-test='property-link']") or
+                    card.select_one("a.propertyCard-link") or
+                    card.select_one("a[href*='/properties/']")
+                )
+                
+                # Get image
+                image = ""
+                img = (
+                    card.select_one("[data-test='property-image'] img") or
+                    card.select_one(".PropertyCardImage_slide__B8bBX img") or
+                    card.select_one('img[itemprop="image"]') or
+                    card.select_one(".property-image img")
+                )
+                if img and img.has_attr("src"):
+                    image = img["src"]
 
                 # Debug: Print extracted elements
                 print(f"\n[Rightmove DEBUG] Card {idx + 1} elements:")
