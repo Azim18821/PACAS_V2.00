@@ -299,8 +299,7 @@ async function performSearch() {
                 const errorJson = JSON.parse(errorText);
                 throw new Error(errorJson.error || 'Search failed');
             } catch (e) {
-                const errorData = await response.json();
-throw new Error(errorData.error || 'Search failed: Invalid server response');
+                throw new Error('Search failed: Invalid server response');
             }
         }
 
