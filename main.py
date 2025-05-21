@@ -142,7 +142,7 @@ async def search():
             validated_data['listing_type'],
             1  # First page
         )
-        
+
         if cached_results:
             logger.info("Found valid cached results in database")
             return jsonify(cached_results)
@@ -162,7 +162,7 @@ async def search():
                     validated_data['listing_type'],
                     1  # First page
                 )
-                
+
                 # Prepare response
                 response_data = {
                     "listings": first_page_results,
@@ -172,7 +172,7 @@ async def search():
                     "is_complete": False,
                     "search_params": validated_data
                 }
-                
+
                 # Only cache if we have valid results
                 if first_page_results and len(first_page_results) > 0:
                     db.cache_results(
@@ -190,7 +190,7 @@ async def search():
                     logger.info("Cached valid results with %d listings", len(first_page_results))
                 else:
                     logger.info("Skipping cache for empty results")
-                
+
                 return jsonify(response_data)
             except Exception as e:
                 logger.error("Error scraping Zoopla first page: %s", str(e))
@@ -211,7 +211,7 @@ async def search():
                 validated_data['listing_type'],
                 1  # First page
             )
-            
+
             # Prepare response
             response_data = {
                 "listings": results.get("listings", []) if isinstance(results, dict) else results,
@@ -221,7 +221,7 @@ async def search():
                 "is_complete": True,
                 "search_params": validated_data
             }
-            
+
 
 
 @app.route('/api/zoopla', methods=['POST'])
@@ -230,7 +230,7 @@ async def get_zoopla_json():
     try:
         data = request.get_json()
         validated_data = validate_search_params(data)
-        
+
         results = await scrape_zoopla(
             validated_data['location'],
             validated_data['min_price'],
@@ -240,7 +240,7 @@ async def get_zoopla_json():
             validated_data['keywords'],
             validated_data['listing_type']
         )
-        
+
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -251,7 +251,7 @@ async def get_rightmove_json():
     try:
         data = request.get_json()
         validated_data = validate_search_params(data)
-        
+
         url = get_final_rightmove_results_url(
             location=validated_data['location'],
             min_price=validated_data['min_price'],
@@ -262,7 +262,7 @@ async def get_rightmove_json():
             include_sold=True,
             listing_type=validated_data['listing_type']
         )
-        
+
         results = scrape_rightmove_from_url(url)
         return jsonify(results)
     except Exception as e:
@@ -274,7 +274,7 @@ async def get_combined_json():
     try:
         data = request.get_json()
         validated_data = validate_search_params(data)
-        
+
         scraper_bot = ScraperBot()
         results = await scraper_bot.scrape_combined(
             location=validated_data['location'],
@@ -285,7 +285,7 @@ async def get_combined_json():
             listing_type=validated_data['listing_type'],
             keywords=validated_data['keywords']
         )
-        
+
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -309,7 +309,7 @@ async def get_combined_json():
                 logger.info("Cached valid results with %d listings", len(listings))
             else:
                 logger.info("Skipping cache for empty results")
-            
+
             return jsonify(response_data)
 
     except Exception as e:
@@ -327,10 +327,10 @@ async def next_page():
         data = request.get_json()
         search_params = data.get('search_params', {})
         current_page = data.get('current_page', 1)
-        
+
         logger.info("Received next page request: %s", data)
         logger.info("Processing next page request for site: %s, page: %d", search_params['site'], current_page)
-        
+
         # Validate and clean parameters using validate_search_params
         try:
             validated_params = validate_search_params(search_params)
@@ -340,7 +340,7 @@ async def next_page():
                 "error": "Invalid parameters",
                 "details": str(e)
             }), 400
-        
+
         # If site is combined, use the scraper bot's scrape_combined method
         if validated_params['site'] == 'combined':
             logger.info("Processing combined search for page %d", current_page)
@@ -356,7 +356,7 @@ async def next_page():
                 keywords=validated_params['keywords']
             )
             return jsonify(results)
-        
+
         # Check cache for current page
         cached_results = db.get_cached_results(
             validated_params['site'],
@@ -369,14 +369,14 @@ async def next_page():
             validated_params['listing_type'],
             current_page
         )
-        
+
         if cached_results:
             logger.info("Found valid cached results for page %d", current_page)
             logger.info("Rightmove cached page %d: has_next_page=%s, total_pages=%d", 
                        current_page, cached_results.get('has_next_page', True),
                        cached_results.get('total_pages', 1))
             return jsonify(cached_results)
-        
+
         # If not in cache, scrape the requested page
         if validated_params['site'] == 'rightmove':
             url = get_final_rightmove_results_url(
@@ -396,25 +396,25 @@ async def next_page():
                     "error": "Failed to generate Rightmove URL",
                     "details": "Could not construct valid URL with the provided parameters"
                 }), 400
-                
+
             logger.info("Scraping Rightmove URL: %s", url)
             page_results = scrape_rightmove_from_url(url, page=current_page)
-            
+
             if not page_results or 'listings' not in page_results:
                 logger.error("Invalid response from Rightmove scraper")
                 return jsonify({
                     "error": "Invalid response from Rightmove",
                     "details": "Failed to fetch page of results"
                 }), 500
-            
+
             # Ensure we have the has_next_page flag
             if 'has_next_page' not in page_results:
                 page_results['has_next_page'] = current_page < page_results.get('total_pages', 1)
-            
+
             logger.info("Rightmove page %d: has_next_page=%s, total_pages=%d", 
                        current_page, page_results['has_next_page'], 
                        page_results.get('total_pages', 1))
-            
+
             # Cache the results
             db.cache_results(
                 validated_params['site'],
@@ -428,7 +428,7 @@ async def next_page():
                 current_page,
                 page_results
             )
-            
+
             return jsonify(page_results)
         elif validated_params['site'] == 'zoopla':
             # Scrape the current page and get total pages
@@ -442,7 +442,7 @@ async def next_page():
                 validated_params['listing_type'],
                 current_page
             )
-            
+
             # Format Zoopla results to match the expected structure
             response_data = {
                 "listings": page_results,
@@ -452,7 +452,7 @@ async def next_page():
                 "has_next_page": current_page < total_pages,
                 "search_params": validated_params
             }
-            
+
             # Only cache if we have valid results
             if page_results and len(page_results) > 0:
                 db.cache_results(
@@ -470,14 +470,14 @@ async def next_page():
                 logger.info("Cached results for page %d", current_page)
             else:
                 logger.info("Skipping cache for page %d - no valid results", current_page)
-            
+
             return jsonify(response_data)
         else:
             return jsonify({
                 "error": "Unsupported site",
                 "details": f"Site {validated_params['site']} is not supported for pagination"
             }), 400
-            
+
     except Exception as e:
         logger.error("Error in next_page: %s", str(e))
         return jsonify({
