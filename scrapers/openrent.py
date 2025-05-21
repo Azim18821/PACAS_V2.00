@@ -23,7 +23,6 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
             'bedrooms_min': min_beds if min_beds and str(min_beds) != '0' else None,
             'bedrooms_max': max_beds if max_beds and str(max_beds) != '0' else None,
             'acceptStudents': 'true',
-            'sortType': '1',  # Add sorting by newest first
             'page': str(page) if page > 1 else None
         }
         
