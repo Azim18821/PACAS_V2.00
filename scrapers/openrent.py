@@ -13,52 +13,26 @@ SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 def get_proxy_url(url):
     return f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
 
-def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds="", page=1):
+def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords="", page=1):
     try:
-        # Format search parameters with proper price and bed filters
-        # Format search parameters exactly like OpenRent
+        # Format search parameters
         params = {
             'term': location.strip(),
-            'prices_min': min_price if min_price and str(min_price) != '0' else None,
-            'prices_max': max_price if max_price and str(max_price) != '0' else None,
-            'bedrooms_min': min_beds if min_beds and str(min_beds) != '0' else None,
-            'bedrooms_max': max_beds if max_beds and str(max_beds) != '0' else None,
-            'acceptStudents': 'true',
-            'sortType': '1',  # Sort by newest
-            'viewType': 'list'  # List view
+            'sortType': 'newestFirst'
         }
         
-        # Remove None values
-        params = {k: v for k, v in params.items() if v is not None}
+        if min_price:
+            params['prices_min'] = min_price
+        if max_price:
+            params['prices_max'] = max_price
+        if min_beds:
+            params['bedrooms_min'] = min_beds
             
-        # Build URL with parameters exactly like OpenRent
+        # Build URL with parameters
         base_url = "https://www.openrent.co.uk/properties-to-rent"
-        search_url = f"{base_url}/{location.strip().lower()}"
-        
-        # Always include basic params
-        params = {
-            'term': location.strip(),
-            'bedrooms_min': min_beds if min_beds and str(min_beds) != '0' else None,
-            'bedrooms_max': max_beds if max_beds and str(max_beds) != '0' else None,
-            'prices_min': min_price if min_price and str(min_price) != '0' else None,
-            'prices_max': max_price if max_price and str(max_price) != '0' else None,
-            'sortType': '1',  # Sort by newest
-            'viewType': 'list'
-        }
-        
-        # Remove None values
-        params = {k: v for k, v in params.items() if v is not None}
-        
-        # Add parameters to URL
-        search_url += "?" + urlencode(params)
-        
-        # Add page parameter if needed
+        search_url = f"{base_url}?{urlencode(params)}"
         if page > 1:
             search_url += f"&page={page}"
-        
-        logging.info(f"[OpenRent] Generated search URL: {search_url}")
-            
-        logging.info(f"[OpenRent] Generated URL: {search_url}")
 
         # Use proxy
         proxy_url = get_proxy_url(search_url)
@@ -113,39 +87,9 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
                 img_elem = card.select_one("img.propertyPic")
                 image_url = img_elem.get('data-src') or img_elem.get('src') if img_elem else ""
 
-                # Extract price with more specific selectors
-                price = "Price not specified"
-                try:
-                    # Try multiple price selectors
-                    price_elem = (
-                        card.select_one(".pli__price") or  # Primary price selector
-                        card.select_one(".listing-price") or
-                        card.select_one(".propertyCard-priceValue") or
-                        card.select_one("[data-price]")
-                    )
-                    
-                    if price_elem:
-                        price_text = price_elem.text.strip()
-                        # Remove any non-price text
-                        price_text = ''.join(c for c in price_text if c.isdigit() or c in '£,.')
-                        if price_text:
-                            # Format price consistently
-                            price_text = price_text.replace(',', '')
-                            if not price_text.startswith('£'):
-                                price_text = f'£{price_text}'
-                            # Add pcm for rental listings
-                            if 'rent' in card.get('href', '').lower():
-                                price_text += ' pcm'
-                            price = price_text
-                    else:
-                        # Try finding price in the listing text
-                        listing_text = card.get_text()
-                        import re
-                        price_match = re.search(r'£(\d{2,4}(?:,\d{3})*(?:\.\d{2})?)', listing_text)
-                        if price_match:
-                            price = f"£{price_match.group(1)} pcm"
-                except Exception as e:
-                    logging.error(f"Error extracting price: {str(e)}")
+                # Extract price
+                price_elem = card.select_one(".price")
+                price = price_elem.text.strip() if price_elem else "Price not specified"
 
                 # Extract title and address
                 title_elem = card.select_one(".banda")
@@ -180,11 +124,11 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
 
         results = {
             "listings": listings,
-            "total_found": len(listings),  # Use actual number of listings found
-            "total_pages": max(1, (total_results + 23) // 24),  # Calculate total pages based on results
+            "total_found": total_results,
+            "total_pages": total_pages,
             "current_page": page,
-            "has_next_page": len(listings) == 24,  # If we got full page, there might be more
-            "is_complete": len(listings) < 24  # If we got partial page, we're done
+            "has_next_page": page < total_pages,
+            "is_complete": page >= total_pages
         }
 
         return results
