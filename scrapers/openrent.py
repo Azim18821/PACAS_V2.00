@@ -13,7 +13,7 @@ SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 def get_proxy_url(url):
     return f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
 
-def scrape_openrent(location, min_price="", max_price="", min_beds="", page=1):
+def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds="", page=1):
     try:
         # Format search parameters
         params = {
