@@ -1,4 +1,3 @@
-
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -20,14 +19,14 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
             'term': location.strip(),
             'sortType': 'newestFirst'
         }
-        
+
         if min_price:
             params['prices_min'] = min_price
         if max_price:
             params['prices_max'] = max_price
         if min_beds:
             params['bedrooms_min'] = min_beds
-            
+
         # Build URL with parameters
         base_url = "https://www.openrent.co.uk/properties-to-rent"
         search_url = f"{base_url}?{urlencode(params)}"
@@ -63,7 +62,7 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
                 time.sleep(2 ** attempt)  # Exponential backoff
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
         # Extract total results and pages
         total_results = 0
         total_results_elem = soup.select_one('.searchTitle')
@@ -76,11 +75,11 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
 
         # Calculate total pages (24 results per page)
         total_pages = (total_results + 23) // 24 if total_results > 0 else 1
-        
+
         # Find all property listings
         listings = []
         property_cards = soup.select("a.pli")
-        
+
         for card in property_cards:
             try:
                 # Extract image
@@ -89,37 +88,25 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
 
                 # Extract price with more specific selectors
                 price = "Price not specified"
-                try:
-                    # Try multiple price selectors
-                    price_elem = (
-                        card.select_one(".pli__price") or  # Primary price selector
-                        card.select_one(".listing-price") or
-                        card.select_one(".propertyCard-priceValue") or
-                        card.select_one("[data-price]")
-                    )
-                    
-                    if price_elem:
-                        price_text = price_elem.text.strip()
-                        # Remove any non-price text
-                        price_text = ''.join(c for c in price_text if c.isdigit() or c in '£,.')
-                        if price_text:
-                            # Format price consistently
-                            price_text = price_text.replace(',', '')
-                            if not price_text.startswith('£'):
-                                price_text = f'£{price_text}'
-                            # Add pcm for rental listings
-                            if 'rent' in card.get('href', '').lower():
-                                price_text += ' pcm'
-                            price = price_text
-                    else:
-                        # Try finding price in the listing text
-                        listing_text = card.get_text()
-                        import re
-                        price_match = re.search(r'£(\d{2,4}(?:,\d{3})*(?:\.\d{2})?)', listing_text)
-                        if price_match:
-                            price = f"£{price_match.group(1)} pcm"
-                except Exception as e:
-                    logging.error(f"Error extracting price: {str(e)}")
+                if price_elem:
+                    price_text = price_elem.text.strip().lower()
+                    # Extract numeric value and determine if weekly or monthly
+                    import re
+
+                    # Clean and normalize price text
+                    price_text = price_text.replace(',', '')
+                    amount_match = re.search(r'£?(\d+(?:\.\d{2})?)', price_text)
+
+                    if amount_match:
+                        amount = float(amount_match.group(1))
+                        # Check if price is weekly
+                        if 'pw' in price_text or 'per week' in price_text:
+                            # Convert weekly to monthly
+                            monthly_amount = round(amount * 52 / 12, 2)
+                            price = f"£{monthly_amount:,.2f} pcm (£{amount:,.2f} pw)"
+                        else:
+                            # Assume monthly if not specified as weekly
+                            price = f"£{amount:,.2f} pcm"
 
                 # Extract title and address
                 title_elem = card.select_one(".banda")
@@ -145,7 +132,7 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
                     "property_id": property_id,
                     "source": "OpenRent"
                 }
-                
+
                 listings.append(listing)
 
             except Exception as e:
