@@ -33,11 +33,30 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
             
         # Build URL with parameters exactly like OpenRent
         base_url = "https://www.openrent.co.uk/properties-to-rent"
-        search_url = f"{base_url}?term={location.strip()}"
-        if params:
-            search_url += f"&{urlencode({k:v for k,v in params.items() if k != 'term'})}"
+        search_url = f"{base_url}/{location.strip().lower()}"
+        
+        # Always include basic params
+        params = {
+            'term': location.strip(),
+            'bedrooms_min': min_beds if min_beds and str(min_beds) != '0' else None,
+            'bedrooms_max': max_beds if max_beds and str(max_beds) != '0' else None,
+            'prices_min': min_price if min_price and str(min_price) != '0' else None,
+            'prices_max': max_price if max_price and str(max_price) != '0' else None,
+            'sortType': '1',  # Sort by newest
+            'viewType': 'list'
+        }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        # Add parameters to URL
+        search_url += "?" + urlencode(params)
+        
+        # Add page parameter if needed
         if page > 1:
             search_url += f"&page={page}"
+        
+        logging.info(f"[OpenRent] Generated search URL: {search_url}")
             
         logging.info(f"[OpenRent] Generated URL: {search_url}")
 
@@ -161,11 +180,11 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
 
         results = {
             "listings": listings,
-            "total_found": total_results,
-            "total_pages": total_pages,
+            "total_found": len(listings),  # Use actual number of listings found
+            "total_pages": max(1, (total_results + 23) // 24),  # Calculate total pages based on results
             "current_page": page,
-            "has_next_page": page < total_pages,
-            "is_complete": page >= total_pages
+            "has_next_page": len(listings) == 24,  # If we got full page, there might be more
+            "is_complete": len(listings) < 24  # If we got partial page, we're done
         }
 
         return results
