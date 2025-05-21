@@ -16,14 +16,16 @@ def get_proxy_url(url):
 def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds="", page=1):
     try:
         # Format search parameters with proper price and bed filters
+        # Format search parameters exactly like OpenRent
         params = {
             'term': location.strip(),
-            'prices_min': min_price if min_price and min_price != '0' else None,
-            'prices_max': max_price if max_price and max_price != '0' else None,
+            'prices_min': min_price if min_price and str(min_price) != '0' else None,
+            'prices_max': max_price if max_price and str(max_price) != '0' else None,
             'bedrooms_min': min_beds if min_beds and str(min_beds) != '0' else None,
             'bedrooms_max': max_beds if max_beds and str(max_beds) != '0' else None,
             'acceptStudents': 'true',
-            'page': str(page) if page > 1 else None
+            'sortType': '1',  # Sort by newest
+            'viewType': 'list'  # List view
         }
         
         # Remove None values
@@ -31,9 +33,11 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
             
         # Build URL with parameters
         base_url = "https://www.openrent.co.uk/properties-to-rent"
-        search_url = f"{base_url}?{urlencode(params)}"
+        search_url = f"{base_url}/{location.strip().lower()}?{urlencode(params)}"
         if page > 1:
             search_url += f"&page={page}"
+            
+        logging.info(f"[OpenRent] Generated URL: {search_url}")
 
         # Use proxy
         proxy_url = get_proxy_url(search_url)
