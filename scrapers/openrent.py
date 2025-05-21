@@ -18,10 +18,14 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
         # Format search parameters
         params = {
             'term': location.strip(),
-            'sortType': 'newestFirst',
-            'acceptStudents': 'true',  # Include student-friendly properties
-            'includeBills': 'true'     # Include properties with bills included
+            'bedrooms_min': min_beds if min_beds else None,
+            'bedrooms_max': '3',  # Default max beds
+            'acceptStudents': 'true',
+            'includeBills': 'true'
         }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
         
         if min_price:
             params['prices_min'] = min_price
