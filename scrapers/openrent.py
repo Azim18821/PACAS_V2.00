@@ -13,7 +13,7 @@ SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 def get_proxy_url(url):
     return f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={url}"
 
-def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords="", page=1):
+def scrape_openrent(location, min_price="", max_price="", min_beds="", page=1):
     try:
         # Format search parameters
         params = {
@@ -26,10 +26,6 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
             'includeBills': 'true'
         }
         
-        # Add keyword filter if provided
-        if keywords:
-            params['keywords'] = keywords.strip()
-            
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
             
