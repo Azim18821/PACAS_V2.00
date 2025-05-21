@@ -87,39 +87,25 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
                 img_elem = card.select_one("img.propertyPic")
                 image_url = img_elem.get('data-src') or img_elem.get('src') if img_elem else ""
 
-                # Extract price with more specific selectors
+                # Extract price with multiple fallback selectors
+                price_elem = (
+                    card.select_one(".price") or
+                    card.select_one(".propertyPrice") or
+                    card.select_one("[data-price]") or
+                    card.select_one("span.per-month")
+                )
+                
                 price = "Price not specified"
-                try:
-                    # Try multiple price selectors
-                    price_elem = (
-                        card.select_one(".pli__price") or  # Primary price selector
-                        card.select_one(".listing-price") or
-                        card.select_one(".propertyCard-priceValue") or
-                        card.select_one("[data-price]")
-                    )
-                    
-                    if price_elem:
-                        price_text = price_elem.text.strip()
-                        # Remove any non-price text
-                        price_text = ''.join(c for c in price_text if c.isdigit() or c in '£,.')
-                        if price_text:
-                            # Format price consistently
-                            price_text = price_text.replace(',', '')
-                            if not price_text.startswith('£'):
-                                price_text = f'£{price_text}'
-                            # Add pcm for rental listings
-                            if 'rent' in card.get('href', '').lower():
-                                price_text += ' pcm'
-                            price = price_text
-                    else:
-                        # Try finding price in the listing text
-                        listing_text = card.get_text()
-                        import re
-                        price_match = re.search(r'£(\d{2,4}(?:,\d{3})*(?:\.\d{2})?)', listing_text)
-                        if price_match:
-                            price = f"£{price_match.group(1)} pcm"
-                except Exception as e:
-                    logging.error(f"Error extracting price: {str(e)}")
+                if price_elem:
+                    price_text = price_elem.text.strip()
+                    # Clean up price text and ensure £ symbol
+                    if price_text:
+                        price_text = price_text.replace("pcm", "").replace("per month", "").strip()
+                        if not price_text.startswith("£"):
+                            price_text = f"£{price_text}"
+                        if "pcm" not in price_text.lower():
+                            price_text += " pcm"
+                        price = price_text
 
                 # Extract title and address
                 title_elem = card.select_one(".banda")
