@@ -1,4 +1,4 @@
-﻿from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from scrapers.zoopla import scrape_zoopla, scrape_zoopla_first_page, scrape_zoopla_page
@@ -222,6 +222,75 @@ async def search():
                 "search_params": validated_data
             }
             
+
+
+@app.route('/api/zoopla', methods=['POST'])
+async def get_zoopla_json():
+    """Get Zoopla results in JSON format"""
+    try:
+        data = request.get_json()
+        validated_data = validate_search_params(data)
+        
+        results = await scrape_zoopla(
+            validated_data['location'],
+            validated_data['min_price'],
+            validated_data['max_price'],
+            validated_data['min_beds'],
+            validated_data['max_beds'],
+            validated_data['keywords'],
+            validated_data['listing_type']
+        )
+        
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/rightmove', methods=['POST']) 
+async def get_rightmove_json():
+    """Get Rightmove results in JSON format"""
+    try:
+        data = request.get_json()
+        validated_data = validate_search_params(data)
+        
+        url = get_final_rightmove_results_url(
+            location=validated_data['location'],
+            min_price=validated_data['min_price'],
+            max_price=validated_data['max_price'],
+            min_beds=validated_data['min_beds'],
+            max_beds=validated_data['max_beds'],
+            radius="0.0",
+            include_sold=True,
+            listing_type=validated_data['listing_type']
+        )
+        
+        results = scrape_rightmove_from_url(url)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/combined', methods=['POST'])
+async def get_combined_json():
+    """Get combined results in JSON format"""
+    try:
+        data = request.get_json()
+        validated_data = validate_search_params(data)
+        
+        scraper_bot = ScraperBot()
+        results = await scraper_bot.scrape_combined(
+            location=validated_data['location'],
+            min_price=validated_data['min_price'],
+            max_price=validated_data['max_price'],
+            min_beds=validated_data['min_beds'],
+            max_beds=validated_data['max_beds'],
+            listing_type=validated_data['listing_type'],
+            keywords=validated_data['keywords']
+        )
+        
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
             # Only cache if we have valid results
             listings = results.get("listings", []) if isinstance(results, dict) else results
             if listings and len(listings) > 0:
