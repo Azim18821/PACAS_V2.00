@@ -31,9 +31,11 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
             
-        # Build URL with parameters
+        # Build URL with parameters exactly like OpenRent
         base_url = "https://www.openrent.co.uk/properties-to-rent"
-        search_url = f"{base_url}/{location.strip().lower()}?{urlencode(params)}"
+        search_url = f"{base_url}?term={location.strip()}"
+        if params:
+            search_url += f"&{urlencode({k:v for k,v in params.items() if k != 'term'})}"
         if page > 1:
             search_url += f"&page={page}"
             
