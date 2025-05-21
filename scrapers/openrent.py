@@ -18,22 +18,20 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", keywords=
         # Format search parameters
         params = {
             'term': location.strip(),
+            'prices_min': min_price if min_price else None,
+            'prices_max': max_price if max_price else None,
             'bedrooms_min': min_beds if min_beds else None,
-            'bedrooms_max': '3',  # Default max beds
+            'bedrooms_max': max_beds if max_beds else None,
             'acceptStudents': 'true',
             'includeBills': 'true'
         }
         
+        # Add keyword filter if provided
+        if keywords:
+            params['keywords'] = keywords.strip()
+            
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
-        
-        if min_price:
-            params['prices_min'] = min_price
-        if max_price:
-            params['prices_max'] = max_price
-        if min_beds:
-            params['bedrooms_min'] = min_beds
-            params['bedrooms_max'] = '3'  # Set default max beds to 3
             
         # Build URL with parameters
         base_url = "https://www.openrent.co.uk/properties-to-rent"
