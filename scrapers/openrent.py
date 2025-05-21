@@ -34,6 +34,8 @@ def scrape_openrent(location, min_price="", max_price="", min_beds="", max_beds=
         search_url = f"{base_url}?{urlencode(params)}"
         if page > 1:
             search_url += f"&page={page}"
+            
+        logging.info(f"[OpenRent] Scraping URL: {search_url}")
 
         # Use proxy
         proxy_url = get_proxy_url(search_url)
