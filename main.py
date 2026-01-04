@@ -181,10 +181,43 @@ async def search():
             logger.error("Validation error: %s", str(e))
             return jsonify({"error": str(e)}), 400
 
-        # If site is combined, redirect to combined endpoint
+        # If site is combined, use ScraperBot's combined method
         if validated_data['site'] == 'combined':
-            logger.info("Redirecting combined search to combined endpoint")
-            return await search_combined()
+            logger.info("Processing combined search request")
+            
+            # Check ScraperAPI limits (combined uses 2x requests)
+            can_proceed, error_msg = scraper_api_monitor.check_limits()
+            if not can_proceed:
+                return jsonify({'error': error_msg}), 429
+            
+            # Initialize scraper bot
+            scraper_bot = ScraperBot()
+            
+            # Get current page from request or default to 1
+            current_page = int(data.get('current_page', 1))
+            logger.info(f"Processing combined search for page {current_page}")
+            
+            # Record API usage (combined = 2 requests)
+            scraper_api_monitor.record_request()
+            scraper_api_monitor.record_request()
+            
+            # Use the scrape_combined method directly
+            results = await scraper_bot.scrape_combined(
+                location=validated_data['location'],
+                min_price=validated_data['min_price'],
+                max_price=validated_data['max_price'],
+                min_beds=validated_data['min_beds'],
+                max_beds=validated_data['max_beds'],
+                listing_type=validated_data['listing_type'],
+                page=current_page,
+                keywords=validated_data['keywords']
+            )
+            
+            # Add search parameters to response
+            results['search_params'] = validated_data
+            
+            logger.info(f"Combined search completed. Found {results.get('total_found', 0)} unique listings")
+            return jsonify(results)
 
         # Check database cache first
         cached_results = db.get_cached_results(

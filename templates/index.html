@@ -218,6 +218,7 @@
 
             <div class="button-wrapper">
                 <button id="searchButton" onclick="performSearch()">Search Properties</button>
+                <button id="clearButton" class="clear-button" onclick="clearAllFilters()">Clear Filters</button>
             </div>
         </div>
     </div>
@@ -227,7 +228,51 @@
             <h2>🔎 Search Results</h2>
             <span id="results-count"></span>
         </div>
-        <div id="progress" style="display: none;"></div>
+        
+        <!-- Enhanced Loading Indicator -->
+        <div id="progress" class="loading-container" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">
+                <h3 id="loading-title">Searching for properties...</h3>
+                <p id="loading-subtitle">Scanning multiple property sites for the best matches</p>
+            </div>
+            <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <!-- Skeleton Loader -->
+        <div id="skeleton-loader" class="skeleton-container" style="display: none;">
+            <div class="skeleton-card">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-content">
+                    <div class="skeleton-line skeleton-title"></div>
+                    <div class="skeleton-line skeleton-price"></div>
+                    <div class="skeleton-line skeleton-text"></div>
+                    <div class="skeleton-line skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-content">
+                    <div class="skeleton-line skeleton-title"></div>
+                    <div class="skeleton-line skeleton-price"></div>
+                    <div class="skeleton-line skeleton-text"></div>
+                    <div class="skeleton-line skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-content">
+                    <div class="skeleton-line skeleton-title"></div>
+                    <div class="skeleton-line skeleton-price"></div>
+                    <div class="skeleton-line skeleton-text"></div>
+                    <div class="skeleton-line skeleton-text short"></div>
+                </div>
+            </div>
+        </div>
         
         <!-- Empty State -->
         <div id="empty-state" class="empty-state">
@@ -311,7 +356,7 @@
             <h2>View Property Details</h2>
             <p>Enter your details to continue to the full listing</p>            <div id="emailModalMessage" class="inline-message"></div>            <form id="emailForm">
                 <input type="email" id="modalEmail" placeholder="your.email@example.com" required>
-                <input type="tel" id="modalPhone" placeholder="Phone number (optional for callback)">
+                <input type="tel" id="modalPhone" placeholder="Phone number (optional, e.g., +44 7123 456789)" pattern="[+0-9\s]*" title="Phone number can only contain numbers, spaces, and + symbol">
                 <div class="modal-checkbox">
                     <input type="checkbox" id="agentCallbackCheckbox" checked>
                     <label for="agentCallbackCheckbox">📞 Get direct callback from agent (recommended)</label>
@@ -341,7 +386,7 @@
             <form id="accountForm">
                 <input type="text" id="accountName" placeholder="Full Name" required>
                 <input type="email" id="accountEmail" placeholder="Email" required>
-                <input type="tel" id="accountPhone" placeholder="Phone Number" required>
+                <input type="tel" id="accountPhone" placeholder="Phone Number (e.g., +44 7123 456789)" pattern="[+0-9\s]+" title="Phone number can only contain numbers, spaces, and + symbol" required>
                 <input type="password" id="accountPassword" placeholder="Create Password (min 6 characters)" minlength="6" required>
                 
                 <!-- Verification code section (hidden initially) -->

@@ -767,166 +767,307 @@ propertyGridTemplate.className = 'property-grid';
 const propertyTemplate = document.createElement('div');
 propertyTemplate.className = 'property fade-in';
 
+// Price options for different scenarios
+const priceOptions = {
+    rent: {
+        zoopla: {
+            min: [
+                { value: "", label: "Min" },
+                { value: "100", label: "£100 pcm" },
+                { value: "200", label: "£200 pcm" },
+                { value: "300", label: "£300 pcm" },
+                { value: "400", label: "£400 pcm" },
+                { value: "500", label: "£500 pcm" },
+                { value: "600", label: "£600 pcm" },
+                { value: "700", label: "£700 pcm" },
+                { value: "800", label: "£800 pcm" },
+                { value: "900", label: "£900 pcm" },
+                { value: "1000", label: "£1,000 pcm" },
+                { value: "1250", label: "£1,250 pcm" },
+                { value: "1500", label: "£1,500 pcm" },
+                { value: "1750", label: "£1,750 pcm" },
+                { value: "2000", label: "£2,000 pcm" },
+                { value: "2500", label: "£2,500 pcm" },
+                { value: "3000", label: "£3,000 pcm" },
+                { value: "4000", label: "£4,000 pcm" },
+                { value: "5000", label: "£5,000 pcm" },
+                { value: "7500", label: "£7,500 pcm" },
+                { value: "10000", label: "£10,000 pcm" },
+                { value: "15000", label: "£15,000 pcm" },
+                { value: "20000", label: "£20,000 pcm" }
+            ],
+            max: [
+                { value: "", label: "Max" },
+                { value: "100", label: "£100 pcm" },
+                { value: "200", label: "£200 pcm" },
+                { value: "300", label: "£300 pcm" },
+                { value: "400", label: "£400 pcm" },
+                { value: "500", label: "£500 pcm" },
+                { value: "600", label: "£600 pcm" },
+                { value: "700", label: "£700 pcm" },
+                { value: "800", label: "£800 pcm" },
+                { value: "900", label: "£900 pcm" },
+                { value: "1000", label: "£1,000 pcm" },
+                { value: "1250", label: "£1,250 pcm" },
+                { value: "1500", label: "£1,500 pcm" },
+                { value: "1750", label: "£1,750 pcm" },
+                { value: "2000", label: "£2,000 pcm" },
+                { value: "2500", label: "£2,500 pcm" },
+                { value: "3000", label: "£3,000 pcm" },
+                { value: "4000", label: "£4,000 pcm" },
+                { value: "5000", label: "£5,000 pcm" },
+                { value: "7500", label: "£7,500 pcm" },
+                { value: "10000", label: "£10,000 pcm" },
+                { value: "15000", label: "£15,000 pcm" },
+                { value: "20000", label: "£20,000 pcm" },
+                { value: "25000", label: "£25,000 pcm" }
+            ]
+        },
+        other: {
+            min: [
+                { value: "", label: "Min" },
+                { value: "500", label: "£500 pcm" },
+                { value: "1000", label: "£1,000 pcm" },
+                { value: "1500", label: "£1,500 pcm" },
+                { value: "2000", label: "£2,000 pcm" },
+                { value: "3000", label: "£3,000 pcm" }
+            ],
+            max: [
+                { value: "", label: "Max" },
+                { value: "500", label: "£500 pcm" },
+                { value: "1000", label: "£1,000 pcm" },
+                { value: "1500", label: "£1,500 pcm" },
+                { value: "2000", label: "£2,000 pcm" },
+                { value: "2500", label: "£2,500 pcm" },
+                { value: "3000", label: "£3,000 pcm" },
+                { value: "5000", label: "£5,000 pcm" },
+                { value: "10000", label: "£10,000 pcm" }
+            ]
+        }
+    },
+    sale: {
+        zoopla: {
+            min: [
+                { value: "", label: "Min" },
+                { value: "50000", label: "£50,000" },
+                { value: "60000", label: "£60,000" },
+                { value: "70000", label: "£70,000" },
+                { value: "80000", label: "£80,000" },
+                { value: "90000", label: "£90,000" },
+                { value: "100000", label: "£100,000" },
+                { value: "110000", label: "£110,000" },
+                { value: "120000", label: "£120,000" },
+                { value: "130000", label: "£130,000" },
+                { value: "140000", label: "£140,000" },
+                { value: "150000", label: "£150,000" },
+                { value: "160000", label: "£160,000" },
+                { value: "170000", label: "£170,000" },
+                { value: "180000", label: "£180,000" },
+                { value: "190000", label: "£190,000" },
+                { value: "200000", label: "£200,000" },
+                { value: "250000", label: "£250,000" },
+                { value: "300000", label: "£300,000" },
+                { value: "400000", label: "£400,000" },
+                { value: "500000", label: "£500,000" },
+                { value: "600000", label: "£600,000" },
+                { value: "700000", label: "£700,000" },
+                { value: "800000", label: "£800,000" },
+                { value: "900000", label: "£900,000" },
+                { value: "1000000", label: "£1,000,000" }
+            ],
+            max: [
+                { value: "", label: "Max" },
+                { value: "50000", label: "£50,000" },
+                { value: "60000", label: "£60,000" },
+                { value: "70000", label: "£70,000" },
+                { value: "80000", label: "£80,000" },
+                { value: "90000", label: "£90,000" },
+                { value: "100000", label: "£100,000" },
+                { value: "110000", label: "£110,000" },
+                { value: "120000", label: "£120,000" },
+                { value: "130000", label: "£130,000" },
+                { value: "140000", label: "£140,000" },
+                { value: "150000", label: "£150,000" },
+                { value: "160000", label: "£160,000" },
+                { value: "170000", label: "£170,000" },
+                { value: "180000", label: "£180,000" },
+                { value: "190000", label: "£190,000" },
+                { value: "200000", label: "£200,000" },
+                { value: "250000", label: "£250,000" },
+                { value: "300000", label: "£300,000" },
+                { value: "400000", label: "£400,000" },
+                { value: "500000", label: "£500,000" },
+                { value: "600000", label: "£600,000" },
+                { value: "700000", label: "£700,000" },
+                { value: "800000", label: "£800,000" },
+                { value: "900000", label: "£900,000" },
+                { value: "1000000", label: "£1,000,000" },
+                { value: "1500000", label: "£1,500,000" },
+                { value: "2000000", label: "£2,000,000" }
+            ]
+        },
+        other: {
+            min: [
+                { value: "", label: "Min" },
+                { value: "50000", label: "£50,000" },
+                { value: "100000", label: "£100,000" },
+                { value: "200000", label: "£200,000" },
+                { value: "300000", label: "£300,000" },
+                { value: "500000", label: "£500,000" }
+            ],
+            max: [
+                { value: "", label: "Max" },
+                { value: "50000", label: "£50,000" },
+                { value: "100000", label: "£100,000" },
+                { value: "200000", label: "£200,000" },
+                { value: "300000", label: "£300,000" },
+                { value: "500000", label: "£500,000" },
+                { value: "1000000", label: "£1,000,000" },
+                { value: "2000000", label: "£2,000,000" }
+            ]
+        }
+    }
+};
+
 function updatePriceDropdowns() {
     const selectedSite = site.value;
+    const type = listingType.value === "rent" ? "rent" : "sale";
+    const siteType = (selectedSite === 'zoopla' || selectedSite === 'combined') ? 'zoopla' : 'other';
     
-    if (listingType.value === "rent") {
-        if (selectedSite === 'zoopla') {
-            minPrice.innerHTML = `
-                <option value="">Min</option>
-                <option value="100">£100 pcm</option>
-                <option value="200">£200 pcm</option>
-                <option value="300">£300 pcm</option>
-                <option value="400">£400 pcm</option>
-                <option value="500">£500 pcm</option>
-                <option value="600">£600 pcm</option>
-                <option value="700">£700 pcm</option>
-                <option value="800">£800 pcm</option>
-                <option value="900">£900 pcm</option>
-                <option value="1000">£1,000 pcm</option>
-                <option value="1250">£1,250 pcm</option>
-                <option value="1500">£1,500 pcm</option>
-                <option value="1750">£1,750 pcm</option>
-                <option value="2000">£2,000 pcm</option>
-                <option value="2500">£2,500 pcm</option>
-                <option value="3000">£3,000 pcm</option>
-                <option value="4000">£4,000 pcm</option>
-                <option value="5000">£5,000 pcm</option>
-                <option value="7500">£7,500 pcm</option>
-                <option value="10000">£10,000 pcm</option>
-                <option value="15000">£15,000 pcm</option>
-                <option value="20000">£20,000 pcm</option>
-            `;
-            maxPrice.innerHTML = `
-                <option value="">Max</option>
-                <option value="200">£200 pcm</option>
-                <option value="300">£300 pcm</option>
-                <option value="400">£400 pcm</option>
-                <option value="500">£500 pcm</option>
-                <option value="600">£600 pcm</option>
-                <option value="700">£700 pcm</option>
-                <option value="800">£800 pcm</option>
-                <option value="900">£900 pcm</option>
-                <option value="1000">£1,000 pcm</option>
-                <option value="1250">£1,250 pcm</option>
-                <option value="1500">£1,500 pcm</option>
-                <option value="1750">£1,750 pcm</option>
-                <option value="2000">£2,000 pcm</option>
-                <option value="2500">£2,500 pcm</option>
-                <option value="3000">£3,000 pcm</option>
-                <option value="4000">£4,000 pcm</option>
-                <option value="5000">£5,000 pcm</option>
-                <option value="7500">£7,500 pcm</option>
-                <option value="10000">£10,000 pcm</option>
-                <option value="15000">£15,000 pcm</option>
-                <option value="20000">£20,000 pcm</option>
-                <option value="25000">£25,000 pcm</option>
-            `;
-        } else {
-            minPrice.innerHTML = `
-                <option value="">Min</option>
-                <option value="500">£500 pcm</option>
-                <option value="1000">£1,000 pcm</option>
-                <option value="1500">£1,500 pcm</option>
-                <option value="2000">£2,000 pcm</option>
-                <option value="3000">£3,000 pcm</option>
-            `;
-            maxPrice.innerHTML = `
-                <option value="">Max</option>
-                <option value="1500">£1,500 pcm</option>
-                <option value="2500">£2,500 pcm</option>
-                <option value="5000">£5,000 pcm</option>
-                <option value="10000">£10,000 pcm</option>
-            `;
-        }
-    } else {
-        if (selectedSite === 'zoopla') {
-            minPrice.innerHTML = `
-                <option value="">Min</option>
-                <option value="50000">£50,000</option>
-                <option value="60000">£60,000</option>
-                <option value="70000">£70,000</option>
-                <option value="80000">£80,000</option>
-                <option value="90000">£90,000</option>
-                <option value="100000">£100,000</option>
-                <option value="110000">£110,000</option>
-                <option value="120000">£120,000</option>
-                <option value="130000">£130,000</option>
-                <option value="140000">£140,000</option>
-                <option value="150000">£150,000</option>
-                <option value="160000">£160,000</option>
-                <option value="170000">£170,000</option>
-                <option value="180000">£180,000</option>
-                <option value="190000">£190,000</option>
-                <option value="200000">£200,000</option>
-                <option value="250000">£250,000</option>
-                <option value="300000">£300,000</option>
-                <option value="400000">£400,000</option>
-                <option value="500000">£500,000</option>
-                <option value="600000">£600,000</option>
-                <option value="700000">£700,000</option>
-                <option value="800000">£800,000</option>
-                <option value="900000">£900,000</option>
-                <option value="1000000">£1,000,000</option>
-            `;
-            maxPrice.innerHTML = `
-                <option value="">Max</option>
-                <option value="60000">£60,000</option>
-                <option value="70000">£70,000</option>
-                <option value="80000">£80,000</option>
-                <option value="90000">£90,000</option>
-                <option value="100000">£100,000</option>
-                <option value="110000">£110,000</option>
-                <option value="120000">£120,000</option>
-                <option value="130000">£130,000</option>
-                <option value="140000">£140,000</option>
-                <option value="150000">£150,000</option>
-                <option value="160000">£160,000</option>
-                <option value="170000">£170,000</option>
-                <option value="180000">£180,000</option>
-                <option value="190000">£190,000</option>
-                <option value="200000">£200,000</option>
-                <option value="250000">£250,000</option>
-                <option value="300000">£300,000</option>
-                <option value="400000">£400,000</option>
-                <option value="500000">£500,000</option>
-                <option value="600000">£600,000</option>
-                <option value="700000">£700,000</option>
-                <option value="800000">£800,000</option>
-                <option value="900000">£900,000</option>
-                <option value="1000000">£1,000,000</option>
-                <option value="1500000">£1,500,000</option>
-                <option value="2000000">£2,000,000</option>
-                <option value="3000000">£3,000,000</option>
-                <option value="4000000">£4,000,000</option>
-                <option value="5000000">£5,000,000</option>
-            `;
-        } else {
-            minPrice.innerHTML = `
-                <option value="">Min</option>
-                <option value="50000">£50,000</option>
-                <option value="100000">£100,000</option>
-                <option value="200000">£200,000</option>
-                <option value="300000">£300,000</option>
-                <option value="500000">£500,000</option>
-            `;
-            maxPrice.innerHTML = `
-                <option value="">Max</option>
-                <option value="300000">£300,000</option>
-                <option value="500000">£500,000</option>
-                <option value="1000000">£1,000,000</option>
-                <option value="2000000">£2,000,000</option>
-            `;
-        }
+    const minOptions = priceOptions[type][siteType].min;
+    const maxOptions = priceOptions[type][siteType].max;
+    
+    // Store current values
+    const currentMinValue = minPrice.value;
+    const currentMaxValue = maxPrice.value;
+    
+    // Update min price dropdown
+    minPrice.innerHTML = minOptions.map(opt => 
+        `<option value="${opt.value}">${opt.label}</option>`
+    ).join('');
+    
+    // Update max price dropdown based on selected min
+    updateMaxPriceOptions();
+    
+    // Restore values if still valid
+    if (currentMinValue && minPrice.querySelector(`option[value="${currentMinValue}"]`)) {
+        minPrice.value = currentMinValue;
+    }
+    if (currentMaxValue && maxPrice.querySelector(`option[value="${currentMaxValue}"]`)) {
+        maxPrice.value = currentMaxValue;
     }
 }
 
-// Add event listener for site changes
+function updateMaxPriceOptions() {
+    const selectedSite = site.value;
+    const type = listingType.value === "rent" ? "rent" : "sale";
+    const siteType = (selectedSite === 'zoopla' || selectedSite === 'combined') ? 'zoopla' : 'other';
+    
+    const maxOptions = priceOptions[type][siteType].max;
+    const selectedMinValue = parseInt(minPrice.value) || 0;
+    
+    // Filter max options to only show values greater than selected min
+    const filteredMaxOptions = maxOptions.filter(opt => {
+        if (opt.value === "") return true; // Always include "Max" option
+        return parseInt(opt.value) > selectedMinValue;
+    });
+    
+    // Store current max value
+    const currentMaxValue = maxPrice.value;
+    
+    // Update max price dropdown
+    maxPrice.innerHTML = filteredMaxOptions.map(opt => 
+        `<option value="${opt.value}">${opt.label}</option>`
+    ).join('');
+    
+    // Restore max value if still valid (greater than min)
+    if (currentMaxValue && parseInt(currentMaxValue) > selectedMinValue) {
+        if (maxPrice.querySelector(`option[value="${currentMaxValue}"]`)) {
+            maxPrice.value = currentMaxValue;
+        }
+    }
+    
+    // Validate: if current max is less than min, reset it
+    if (maxPrice.value && parseInt(maxPrice.value) <= selectedMinValue) {
+        maxPrice.value = "";
+    }
+}
+
+function validatePriceRange() {
+    const minVal = parseInt(minPrice.value) || 0;
+    const maxVal = parseInt(maxPrice.value) || Infinity;
+    
+    if (minVal > 0 && maxVal > 0 && minVal >= maxVal) {
+        // Show error and reset max price
+        alert("Maximum price must be greater than minimum price");
+        maxPrice.value = "";
+        return false;
+    }
+    return true;
+}
+
+// Add event listeners
 site.addEventListener("change", updatePriceDropdowns);
-// Add event listener for listing type changes
 listingType.addEventListener("change", updatePriceDropdowns);
+minPrice.addEventListener("change", () => {
+    updateMaxPriceOptions();
+    validatePriceRange();
+});
+maxPrice.addEventListener("change", validatePriceRange);
+
 // Initial call to set up dropdowns
 updatePriceDropdowns();
+
+// Clear all filters function
+function clearAllFilters() {
+    // Reset select dropdowns to their first option
+    document.getElementById("site").value = "combined";
+    document.getElementById("listing_type").value = "sale";
+    document.getElementById("min_beds").value = "";
+    document.getElementById("max_beds").value = "";
+    document.getElementById("sort_by").value = "newest";
+    
+    // Reset text inputs
+    document.getElementById("location").value = "";
+    document.getElementById("keywords").value = "";
+    
+    // Reset price dropdowns
+    updatePriceDropdowns();
+    document.getElementById("min_price").value = "";
+    document.getElementById("max_price").value = "";
+    
+    // Clear any validation errors
+    const locationError = document.getElementById("location-error");
+    if (locationError) {
+        locationError.textContent = "";
+        locationError.classList.remove('show');
+    }
+    document.getElementById("location").classList.remove('error');
+    
+    // Clear results
+    document.getElementById("results").innerHTML = "";
+    document.getElementById("results-count").textContent = "";
+    document.getElementById("pagination").innerHTML = "";
+    document.getElementById("show-more").style.display = "none";
+    
+    // Show empty state
+    const emptyState = document.getElementById("empty-state");
+    if (emptyState) {
+        emptyState.style.display = "block";
+    }
+    
+    // Reset pagination state
+    currentPage = 1;
+    scrapedPage = 1;
+    PageWeAreOn = 1;
+    currentListings = [];
+    currentSearchParams = null;
+    isLoadingMore = false;
+    lastScrapedPage = 1;
+    
+    // Focus on location field
+    document.getElementById("location").focus();
+}
 
 function sortListings(listings, sortBy) {
     const sortedListings = [...listings]; // Create a copy to avoid mutating original array
@@ -1007,9 +1148,30 @@ async function performSearch() {
     searchButton.disabled = true;
 
     try {
-        // Show progress indicator
+        // Show enhanced progress indicator
         progressDiv.style.display = "block";
-        progressDiv.innerHTML = "Searching for properties...";
+        
+        // Show skeleton loader after a brief delay
+        setTimeout(() => {
+            if (progressDiv.style.display === "block") {
+                const skeletonLoader = document.getElementById("skeleton-loader");
+                if (skeletonLoader) {
+                    skeletonLoader.style.display = "grid";
+                }
+            }
+        }, 800);
+        
+        // Update loading text based on site selection
+        const loadingTitle = document.getElementById("loading-title");
+        const loadingSubtitle = document.getElementById("loading-subtitle");
+        
+        if (site.value === "combined") {
+            loadingTitle.textContent = "Searching all property sites...";
+            loadingSubtitle.textContent = "Scanning Rightmove, Zoopla, and more for the best matches";
+        } else {
+            loadingTitle.textContent = `Searching ${site.options[site.selectedIndex].text}...`;
+            loadingSubtitle.textContent = "Finding properties that match your criteria";
+        }
 
         // Prepare search parameters
         const searchParams = {
@@ -1077,6 +1239,12 @@ async function performSearch() {
         // Re-enable search button and hide progress
         searchButton.disabled = false;
         progressDiv.style.display = "none";
+        
+        // Hide skeleton loader
+        const skeletonLoader = document.getElementById("skeleton-loader");
+        if (skeletonLoader) {
+            skeletonLoader.style.display = "none";
+        }
     }
 }
 
