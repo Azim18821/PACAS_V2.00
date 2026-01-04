@@ -5,6 +5,7 @@ A web application for analyzing and comparing property listings from multiple so
 ## Features
 
 - Multi-source property search (Rightmove, Zoopla)
+- OpenRent support (temporarily disabled - requires browser automation)
 - Advanced filtering and sorting options
 - Responsive design for all devices
 - Caching system for improved performance

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - PACAS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .actions {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .leads-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #666;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .email {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .site-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .rightmove {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .zoopla {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .premium-badge {
+            background: #ffd700;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .callback-badge {
+            background: #4caf50;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .account-badge {
+            background: #9c27b0;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .phone-number {
+            color: #4caf50;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .property-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .property-link:hover {
+            text-decoration: underline;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .no-leads {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+
+        .no-leads-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Lead Dashboard</h1>
+            <p>Track and manage your captured property leads</p>
+        </div>
+
+        <div id="statsContainer" class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalLeads">-</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="premiumLeads">-</div>
+                <div class="stat-label">⭐ Premium (Phone)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="accountLeads">-</div>
+                <div class="stat-label">🎯 Accounts Created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="uniqueEmails">-</div>
+                <div class="stat-label">Unique Emails</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayLeads">-</div>
+                <div class="stat-label">Today's Leads</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+            <button class="btn" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn" onclick="location.href='/'">🏠 Back to Search</button>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <div class="leads-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Contact</th>
+                        <th>Quality</th>
+                        <th>Property</th>
+                        <th>Price</th>
+                        <th>Site</th>
+                        <th>Date</th>
+                        <th>Link</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsTableBody">
+                    <tr>
+                        <td colspan="7" class="loading">Loading leads...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/admin/leads/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalLeads').textContent = stats.total_leads || 0;
+                document.getElementById('premiumLeads').textContent = stats.premium_leads || 0;
+                document.getElementById('accountLeads').textContent = stats.account_leads || 0;
+                document.getElementById('uniqueEmails').textContent = stats.unique_emails || 0;
+                document.getElementById('todayLeads').textContent = stats.today || 0;
+                
+                const bySite = stats.by_site || {};
+                document.getElementById('rightmoveCount').textContent = bySite.Rightmove || 0;
+                document.getElementById('zooplaCount').textContent = bySite.Zoopla || 0;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        async function fetchLeads() {
+            try {
+                const response = await fetch('/api/admin/leads?limit=100');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('leadsTableBody');
+                
+                if (!data.leads || data.leads.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="no-leads">
+                                <div class="no-leads-icon">📭</div>
+                                <div>No leads captured yet</div>
+                                <div style="margin-top: 10px; font-size: 14px;">
+                                    Leads will appear here when users click "View Details" on properties
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = data.leads.map(lead => {
+                    const hasPhone = lead.phone && lead.phone.trim() !== '';
+                    const isAccount = lead.lead_type === 'account_creation';
+                    const wantsCallback = lead.wants_callback === 1;
+                    
+                    return `
+                    <tr>
+                        <td>
+                            <div class="email">${lead.email}</div>
+                            ${hasPhone ? `<div class="phone-number">📱 ${lead.phone}</div>` : ''}
+                            ${lead.name ? `<div style="font-size: 12px; color: #999; margin-top: 4px;">${lead.name}</div>` : ''}
+                        </td>
+                        <td>
+                            ${hasPhone ? '<span class="premium-badge">⭐ PREMIUM</span>' : '<span style="color: #999;">Basic</span>'}
+                            ${isAccount ? '<span class="account-badge">🎯 ACCOUNT</span>' : ''}
+                            ${wantsCallback ? '<span class="callback-badge">📞 Callback</span>' : ''}
+                        </td>
+                        <td>${lead.property_title || 'N/A'}</td>
+                        <td>${lead.property_price || 'N/A'}</td>
+                        <td>
+                            <span class="site-badge ${lead.site.toLowerCase()}">
+                                ${lead.site}
+                            </span>
+                        </td>
+                        <td class="timestamp">${new Date(lead.timestamp).toLocaleString()}</td>
+                        <td>
+                            <a href="${lead.property_url}" target="_blank" class="property-link">
+                                View →
+                            </a>
+                        </td>
+                    </tr>
+                `}).join('');
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching leads:', error);
+                document.getElementById('errorContainer').innerHTML = `
+                    <div class="error">
+                        ⚠️ Error loading leads: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function refreshData() {
+            document.getElementById('leadsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" class="loading">Refreshing...</td>
+                </tr>
+            `;
+            
+            await Promise.all([fetchStats(), fetchLeads()]);
+        }
+
+        function exportCSV() {
+            window.location.href = '/api/admin/leads/export';
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStats();
+            fetchLeads();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+    </script>
+</body>
+</html>

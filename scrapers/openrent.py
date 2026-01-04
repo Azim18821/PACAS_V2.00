@@ -1,3 +1,14 @@
+"""
+OpenRent Scraper - TEMPORARILY DISABLED
+
+OpenRent uses AWS WAF (Web Application Firewall) with JavaScript challenge
+which blocks simple HTTP requests. This requires browser automation (Selenium/Playwright)
+or Apify Actor integration to work properly.
+
+TODO: Implement proper solution using:
+- Option 1: Apify Actor for OpenRent
+- Option 2: Selenium/Playwright browser automation
+"""
 
 import os
 import requests

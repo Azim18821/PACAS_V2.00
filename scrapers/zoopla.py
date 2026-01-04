@@ -105,18 +105,24 @@ def parse_card(card):
             else ""
         )
 
-        # Search for image with multiple selectors
+        # Search for image - Zoopla has images in a sibling structure
         image = ""
-        # Walk up the parent hierarchy to find the correct <source> image
+        # The card and picture are siblings within a common parent container
+        # Walk up to find the common ancestor (usually 5-6 levels up)
         parent = card
-        for _ in range(4):  # Walk up 4 levels max
-            parent = parent.parent
+        for _ in range(6):
+            parent = parent.parent if parent else None
             if parent:
-                source_tag = parent.find("source")
-                if source_tag and source_tag.has_attr("srcset"):
-                    srcset = source_tag["srcset"]
-                    image = srcset.split(",")[0].split()[0]
-                    break
+                # Look for picture tag with srcset in this container
+                picture_tag = parent.find("picture")
+                if picture_tag:
+                    source_tag = picture_tag.find("source")
+                    if source_tag and source_tag.has_attr("srcset"):
+                        srcset = source_tag["srcset"]
+                        # Extract first URL from srcset (format: "url width, url width, ...")
+                        image = srcset.split(",")[0].split()[0]
+                        break
+        
         if not image:
             # Fallback to other image selectors if parent walk fails
             img_tag = (
