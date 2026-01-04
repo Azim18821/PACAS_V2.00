@@ -3,7 +3,99 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Find Your Dream Home</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>PacasHomes - Find Your Dream Property in the UK | Zoopla, Rightmove & OpenRent</title>
+    <meta name="title" content="PacasHomes - Find Your Dream Property in the UK" />
+    <meta name="description" content="Search thousands of UK properties from Zoopla, Rightmove, and OpenRent in one place. Find houses, flats, and apartments for rent or sale. Free property search aggregator." />
+    <meta name="keywords" content="property search UK, houses for rent, flats for sale, UK property finder, Zoopla properties, Rightmove search, OpenRent listings, property aggregator, find homes UK, rental properties" />
+    <meta name="author" content="Aztura LTD" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pacashomes.co.uk/" />
+    <meta property="og:title" content="PacasHomes - Find Your Dream Property in the UK" />
+    <meta property="og:description" content="Search thousands of UK properties from Zoopla, Rightmove, and OpenRent in one place. Find your perfect home today!" />
+    <meta property="og:image" content="https://pacashomes.co.uk/static/og-image.jpg" />
+    <meta property="og:site_name" content="PacasHomes" />
+    <meta property="og:locale" content="en_GB" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://pacashomes.co.uk/" />
+    <meta property="twitter:title" content="PacasHomes - Find Your Dream Property in the UK" />
+    <meta property="twitter:description" content="Search thousands of UK properties from Zoopla, Rightmove, and OpenRent in one place." />
+    <meta property="twitter:image" content="https://pacashomes.co.uk/static/og-image.jpg" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://pacashomes.co.uk/" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    
+    <!-- Schema.org Markup -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "PacasHomes",
+      "url": "https://pacashomes.co.uk",
+      "description": "UK property search aggregator combining Zoopla, Rightmove, and OpenRent listings",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Aztura LTD",
+        "legalName": "Aztura LTD",
+        "url": "https://pacashomes.co.uk",
+        "logo": "https://pacashomes.co.uk/static/logo.png",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "contact@pacashomes.co.uk",
+          "contactType": "Customer Service",
+          "areaServed": "GB"
+        }
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://pacashomes.co.uk/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNZJ78Q0XY"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FNZJ78Q0XY', {
+            'cookie_flags': 'SameSite=None;Secure',
+            'anonymize_ip': true
+        });
+        
+        // Track custom events
+        function trackSearch(location) {
+            gtag('event', 'search', {
+                'search_term': location
+            });
+        }
+        
+        function trackFavorite(propertyId) {
+            gtag('event', 'add_to_favorites', {
+                'property_id': propertyId
+            });
+        }
+        
+        function trackRegistration() {
+            gtag('event', 'sign_up', {
+                'method': 'email'
+            });
+        }
+    </script>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
