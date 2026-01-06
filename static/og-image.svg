@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B7E74;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A89788;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f0f0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative house pattern -->
+  <g opacity="0.1" fill="#fff">
+    <path d="M100 500 L50 550 L60 550 L60 620 L140 620 L140 550 L150 550 Z"/>
+    <path d="M1100 500 L1050 550 L1060 550 L1060 620 L1140 620 L1140 550 L1150 550 Z"/>
+  </g>
+  
+  <!-- Main House Icon -->
+  <g transform="translate(450, 120) scale(2)">
+    <path d="M75 25 L15 80 L30 80 L30 145 L120 145 L120 80 L135 80 Z" fill="#fff"/>
+    <rect x="60" y="100" width="30" height="45" fill="url(#bgGradient)" rx="2"/>
+    <rect x="35" y="65" width="22" height="22" fill="url(#bgGradient)" rx="2"/>
+    <rect x="93" y="65" width="22" height="22" fill="url(#bgGradient)" rx="2"/>
+    <rect x="105" y="20" width="15" height="30" fill="#fff"/>
+  </g>
+  
+  <!-- Logo Text -->
+  <text x="600" y="480" font-family="Arial, sans-serif" font-size="80" font-weight="700" fill="#fff" text-anchor="middle">
+    PacasHomes
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="540" font-family="Arial, sans-serif" font-size="32" fill="#fff" text-anchor="middle" opacity="0.9">
+    Find Your Dream Home in the UK
+  </text>
+  
+  <!-- URL -->
+  <text x="600" y="590" font-family="Arial, sans-serif" font-size="24" fill="#fff" text-anchor="middle" opacity="0.7">
+    pacashomes.co.uk
+  </text>
+</svg>

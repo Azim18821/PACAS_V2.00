@@ -19,7 +19,10 @@
     <meta property="og:url" content="https://pacashomes.co.uk/" />
     <meta property="og:title" content="PacasHomes - Find Your Dream Property in the UK" />
     <meta property="og:description" content="Search thousands of UK properties from Zoopla, Rightmove, and OpenRent in one place. Find your perfect home today!" />
-    <meta property="og:image" content="https://pacashomes.co.uk/static/og-image.jpg" />
+    <meta property="og:image" content="https://pacashomes.co.uk/static/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PacasHomes - UK Property Search" />
     <meta property="og:site_name" content="PacasHomes" />
     <meta property="og:locale" content="en_GB" />
     
@@ -28,13 +31,23 @@
     <meta property="twitter:url" content="https://pacashomes.co.uk/" />
     <meta property="twitter:title" content="PacasHomes - Find Your Dream Property in the UK" />
     <meta property="twitter:description" content="Search thousands of UK properties from Zoopla, Rightmove, and OpenRent in one place." />
-    <meta property="twitter:image" content="https://pacashomes.co.uk/static/og-image.jpg" />
+    <meta property="twitter:image" content="https://pacashomes.co.uk/static/og-image.svg" />
+    <meta property="twitter:image:alt" content="PacasHomes - UK Property Search" />
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://pacashomes.co.uk/" />
     
-    <!-- Favicon -->
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.svg" />
+    <link rel="manifest" href="/static/site.webmanifest" />
+    <meta name="theme-color" content="#8B7E74" />
+    <meta name="msapplication-TileColor" content="#8B7E74" />
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
     
     <!-- Schema.org Markup -->
     <script type="application/ld+json">
@@ -49,7 +62,7 @@
         "name": "Aztura LTD",
         "legalName": "Aztura LTD",
         "url": "https://pacashomes.co.uk",
-        "logo": "https://pacashomes.co.uk/static/logo.png",
+        "logo": "https://pacashomes.co.uk/static/logo.svg",
         "contactPoint": {
           "@type": "ContactPoint",
           "email": "contact@pacashomes.co.uk",
@@ -62,6 +75,41 @@
         "target": "https://pacashomes.co.uk/?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
+    }
+    </script>
+    
+    <!-- LocalBusiness Schema for better local SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "RealEstateAgent",
+      "name": "PacasHomes",
+      "description": "UK property search platform aggregating listings from Zoopla, Rightmove, and OpenRent",
+      "url": "https://pacashomes.co.uk",
+      "logo": "https://pacashomes.co.uk/static/logo.svg",
+      "image": "https://pacashomes.co.uk/static/og-image.svg",
+      "email": "contact@pacashomes.co.uk",
+      "areaServed": {
+        "@type": "Country",
+        "name": "United Kingdom"
+      },
+      "serviceType": ["Property Search", "Real Estate Listings", "Property Aggregation"],
+      "priceRange": "Free",
+      "sameAs": []
+    }
+    </script>
+    
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://pacashomes.co.uk/"
+      }]
     }
     </script>
     
@@ -102,6 +150,9 @@
     <!-- User Header - Logged In -->
     <div class="user-header" id="userHeader" style="display: none;">
         <div class="user-info">
+            <a href="/" class="logo-link" aria-label="PacasHomes Home">
+                <img src="/static/logo.svg" alt="PacasHomes" class="header-logo" width="150" height="40" />
+            </a>
             <span class="user-greeting">👋 Hi, <strong id="userName"></strong></span>
             <div class="user-actions">
                 <button onclick="showFavorites()" class="header-btn">
@@ -115,7 +166,9 @@
     <!-- Guest Header - Not Logged In -->
     <div class="user-header" id="guestHeader">
         <div class="user-info">
-            <span class="user-greeting">🏠 PacasHomes - Finding Your Dream Home</span>
+            <a href="/" class="logo-link" aria-label="PacasHomes Home">
+                <img src="/static/logo.svg" alt="PacasHomes" class="header-logo" width="150" height="40" />
+            </a>
             <div class="user-actions">
                 <button onclick="showLoginModal()" class="header-btn">
                     Sign In

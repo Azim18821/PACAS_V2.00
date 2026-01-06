@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B7E74;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A89788;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#iconGradient)"/>
+  
+  <!-- House Icon -->
+  <g transform="translate(4, 4)">
+    <!-- Roof -->
+    <path d="M12 2 L1 12 L4 12 L4 22 L20 22 L20 12 L23 12 Z" fill="#ffffff"/>
+    <!-- Door -->
+    <rect x="10" y="14" width="4" height="8" fill="#8B7E74" rx="0.5"/>
+    <!-- Windows -->
+    <rect x="5" y="10" width="3" height="3" fill="#8B7E74" rx="0.5"/>
+    <rect x="16" y="10" width="3" height="3" fill="#8B7E74" rx="0.5"/>
+  </g>
+</svg>

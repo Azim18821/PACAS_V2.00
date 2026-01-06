@@ -1,0 +1,26 @@
+{
+  "name": "PacasHomes",
+  "short_name": "PacasHomes",
+  "description": "Find your dream home in the UK - Search Zoopla, Rightmove, and OpenRent in one place",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B7E74",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["business", "lifestyle"],
+  "lang": "en-GB",
+  "scope": "/"
+}

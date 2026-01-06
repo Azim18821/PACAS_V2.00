@@ -1,6 +1,33 @@
+# PacasHomes Robots.txt
+# https://pacashomes.co.uk
+
 User-agent: *
 Allow: /
+Allow: /static/
+
+# Disallow admin and API routes
 Disallow: /admin
 Disallow: /api/
+Disallow: /search
 
+# Allow search engines to find assets
+Allow: /static/*.css
+Allow: /static/*.js
+Allow: /static/*.svg
+Allow: /static/*.png
+Allow: /static/*.jpg
+
+# Sitemap location
 Sitemap: https://pacashomes.co.uk/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1

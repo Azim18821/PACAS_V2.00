@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 40" width="180" height="40">
+  <!-- House Icon -->
+  <g transform="translate(2, 2)">
+    <!-- Roof -->
+    <path d="M18 6 L4 18 L7 18 L7 32 L29 32 L29 18 L32 18 Z" fill="#ffffff"/>
+    <!-- Door -->
+    <rect x="14" y="22" width="8" height="10" fill="#8B7E74"/>
+    <!-- Windows -->
+    <rect x="8" y="14" width="5" height="5" fill="#8B7E74" rx="1"/>
+    <rect x="23" y="14" width="5" height="5" fill="#8B7E74" rx="1"/>
+    <!-- Chimney -->
+    <rect x="24" y="4" width="3" height="7" fill="#ffffff"/>
+  </g>
+  
+  <!-- Text: PacasHomes -->
+  <text x="40" y="25" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">
+    PacasHomes
+  </text>
+</svg>
