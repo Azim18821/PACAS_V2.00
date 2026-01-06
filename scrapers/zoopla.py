@@ -10,6 +10,20 @@ import aiohttp
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
 
+# Zoopla sort options mapping
+ZOOPLA_SORT_OPTIONS = {
+    "newest": "newest_listings",
+    "oldest": "oldest_listings",
+    "price_asc": "price_ascending",
+    "price_desc": "price_descending",
+    "beds_asc": "beds_ascending",
+    "beds_desc": "beds_descending",
+    "most_viewed": "most_popular",
+    "reduced": "most_reduced",
+    "most_reduced": "most_reduced",
+    "distance": "nearest"
+}
+
 # Load environment variables from .env
 logger.info("[Zoopla] Loading environment variables...")
 logger.info("[Zoopla] Current working directory: %s", os.getcwd())
@@ -147,9 +161,9 @@ def parse_card(card):
         logger.error(f"[Zoopla] Failed to parse card: {str(e)}")
         return None
 
-async def scrape_zoopla_first_page(location, min_price="", max_price="", min_beds="", max_beds="", keywords="", listing_type="sale", page_number=1):
+async def scrape_zoopla_first_page(location, min_price="", max_price="", min_beds="", max_beds="", keywords="", listing_type="sale", page_number=1, sort_by="newest"):
     """Scrape only the first page of Zoopla listings and return total pages"""
-    logger.info("[Zoopla] Starting scrape_zoopla_first_page function")
+    logger.info("[Zoopla] Starting scrape_zoopla_first_page function with sort_by: %s", sort_by)
     
     location_url = location.strip().replace(" ", "-").lower()
 
@@ -174,7 +188,8 @@ async def scrape_zoopla_first_page(location, min_price="", max_price="", min_bed
     filters.extend([
         "q=" + location.replace(" ", "%20"),
         "search_source=for-sale" if listing_type == "sale" else "search_source=to-rent",
-        f"pn={str(page_number)}"  # Add page number
+        f"pn={str(page_number)}",  # Add page number
+        f"results_sort={ZOOPLA_SORT_OPTIONS.get(sort_by, 'newest_listings')}"  # Add sort option (Zoopla uses 'results_sort' parameter)
     ])
 
     query = "?" + "&".join(filters) if filters else ""
@@ -223,9 +238,9 @@ async def scrape_zoopla_first_page(location, min_price="", max_price="", min_bed
         logger.info(f"[Zoopla] Total pages found: {total_pages}")
         return first_page_listings, total_pages
 
-async def scrape_zoopla_page(location, min_price="", max_price="", min_beds="", max_beds="", keywords="", listing_type="sale", page_num=1):
+async def scrape_zoopla_page(location, min_price="", max_price="", min_beds="", max_beds="", keywords="", listing_type="sale", page_num=1, sort_by="newest"):
     """Scrape a specific page of Zoopla listings"""
-    logger.info(f"[Zoopla] Starting scrape_zoopla_page function for page {page_num}")
+    logger.info(f"[Zoopla] Starting scrape_zoopla_page function for page {page_num} with sort_by: {sort_by}")
     
     location_url = location.strip().replace(" ", "-").lower()
 
@@ -249,11 +264,10 @@ async def scrape_zoopla_page(location, min_price="", max_price="", min_beds="", 
     
     filters.extend([
         "q=" + location.replace(" ", "%20"),
-        "search_source=for-sale" if listing_type == "sale" else "search_source=to-rent"
+        "search_source=for-sale" if listing_type == "sale" else "search_source=to-rent",
+        f"pn={page_num}",
+        f"results_sort={ZOOPLA_SORT_OPTIONS.get(sort_by, 'newest_listings')}"  # Add sort option
     ])
-
-    # Add page number to filters
-    filters.append(f"pn={page_num}")
 
     query = "?" + "&".join(filters) if filters else ""
     page_url = base_url + query

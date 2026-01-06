@@ -27,10 +27,11 @@ class Database:
                         max_beds TEXT,
                         keywords TEXT,
                         listing_type TEXT,
+                        sort_by TEXT,
                         page_number INTEGER,
                         results TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number)
+                        UNIQUE(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, sort_by, page_number)
                     )
                 ''')
                 
@@ -44,10 +45,16 @@ class Database:
                     # Update existing rows to have page_number = 1
                     cursor.execute('UPDATE listings SET page_number = 1 WHERE page_number IS NULL')
                 
+                if 'sort_by' not in columns:
+                    # Add sort_by column if it doesn't exist
+                    cursor.execute('ALTER TABLE listings ADD COLUMN sort_by TEXT')
+                    # Update existing rows to have sort_by = 'newest'
+                    cursor.execute("UPDATE listings SET sort_by = 'newest' WHERE sort_by IS NULL")
+                
                 # Create index for faster lookups
                 cursor.execute('''
                     CREATE INDEX IF NOT EXISTS idx_listings_search 
-                    ON listings(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number)
+                    ON listings(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, sort_by, page_number)
                 ''')
                 
                 conn.commit()
@@ -57,7 +64,7 @@ class Database:
             logger.error("Error initializing database: %s", str(e))
             raise
 
-    def get_cached_results(self, site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number):
+    def get_cached_results(self, site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number, sort_by='newest'):
         """Get cached results if they exist and are not too old"""
         try:
             # Convert empty strings to NULL for SQL
@@ -75,6 +82,7 @@ class Database:
                 clean_param(max_beds),
                 clean_param(keywords),
                 clean_param(listing_type),
+                clean_param(sort_by) or 'newest',
                 page_number
             ]
             
@@ -93,6 +101,7 @@ class Database:
                 AND max_beds = ?
                 AND (keywords = ? OR (keywords IS NULL AND ? IS NULL))
                 AND (listing_type = ? OR (listing_type IS NULL AND ? IS NULL))
+                AND (sort_by = ? OR (sort_by IS NULL AND ? IS NULL))
                 AND page_number = ?
                 AND created_at > datetime('now', '-24 hours')
             """
@@ -127,7 +136,7 @@ class Database:
             logger.error("Error getting cached results: %s", str(e))
             return None
 
-    def cache_results(self, site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number, results):
+    def cache_results(self, site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number, results, sort_by='newest'):
         """Cache search results"""
         try:
             # Convert empty strings to NULL for SQL
@@ -145,6 +154,7 @@ class Database:
                 clean_param(max_beds),
                 clean_param(keywords),
                 clean_param(listing_type),
+                clean_param(sort_by) or 'newest',
                 page_number,
                 json.dumps(results)
             ]
@@ -155,15 +165,15 @@ class Database:
             # Use INSERT OR REPLACE to handle duplicates
             query = """
                 INSERT OR REPLACE INTO listings 
-                (site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page_number, results, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                (site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, sort_by, page_number, results, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, params)
                 conn.commit()
-                logger.info("Successfully cached results for site: %s, location: %s, page: %d", site, location, page_number)
+                logger.info("Successfully cached results for site: %s, location: %s, sort_by: %s, page: %d", site, location, sort_by, page_number)
                 
         except Exception as e:
             logger.error("Error caching results: %s", str(e))

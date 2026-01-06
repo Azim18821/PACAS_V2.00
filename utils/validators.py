@@ -143,6 +143,17 @@ def validate_listing_type(listing_type: str) -> str:
         raise ValidationError(f"Invalid listing type. Must be one of: {', '.join(valid_types)}", "listing_type")
     return listing_type
 
+def validate_sort_by(sort_by: str) -> str:
+    """Validate sort_by parameter."""
+    valid_sort_options = [
+        "newest", "oldest", "price_asc", "price_desc", 
+        "beds_asc", "beds_desc", "distance", "reduced",
+        "most_viewed", "most_reduced"
+    ]
+    if not sort_by or sort_by not in valid_sort_options:
+        return "newest"  # Default to newest
+    return sort_by
+
 def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate all search parameters."""
     try:
@@ -168,6 +179,9 @@ def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
             data.get("max_beds", "")
         )
         
+        # Validate sort_by
+        sort_by = validate_sort_by(data.get("sort_by", "newest"))
+        
         validated_data = {
             "location": location,
             "min_price": min_price,
@@ -176,7 +190,8 @@ def validate_search_params(data: Dict[str, Any]) -> Dict[str, Any]:
             "max_beds": max_beds,
             "listing_type": listing_type,
             "keywords": data.get("keywords", "").strip(),
-            "site": site
+            "site": site,
+            "sort_by": sort_by
         }
         
         logger.info(f"Validation successful: {validated_data}")

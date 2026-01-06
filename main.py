@@ -98,7 +98,7 @@ def cache_results(cache_key, results):
         if datetime.now() - timestamp > CACHE_DURATION:
             del cache[key]
 
-async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page=1):
+async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, keywords, listing_type, page=1, sort_by="newest"):
     """Scrape a specific site with the given parameters"""
     try:
         if site == "zoopla":
@@ -107,7 +107,7 @@ async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, 
             logger.info("[Zoopla] Scrape completed. Found %d results", len(results))
             return results
         elif site == "rightmove":
-            logger.info("[Rightmove] Starting scrape with listing type: %s, page: %d", listing_type, page)
+            logger.info("[Rightmove] Starting scrape with listing type: %s, page: %d, sort_by: %s", listing_type, page, sort_by)
             url = get_final_rightmove_results_url(
                 location=location,
                 min_price=min_price,
@@ -117,6 +117,7 @@ async def scrape_site(site, location, min_price, max_price, min_beds, max_beds, 
                 radius="0.0",
                 include_sold=True,
                 listing_type=listing_type,
+                sort_by=sort_by,  # Pass sort_by parameter
                 page=page  # Pass the page parameter
             )
             if not url:
@@ -229,7 +230,8 @@ async def search():
             validated_data['max_beds'],
             validated_data['keywords'],
             validated_data['listing_type'],
-            1  # First page
+            1,  # First page
+            validated_data.get('sort_by', 'newest')  # Include sort_by
         )
 
         if cached_results:
@@ -252,7 +254,8 @@ async def search():
                     validated_data['max_beds'],
                     validated_data['keywords'],
                     validated_data['listing_type'],
-                    1  # First page
+                    1,  # First page
+                    validated_data.get('sort_by', 'newest')  # Include sort_by
                 )
 
                 # Prepare response
@@ -277,7 +280,8 @@ async def search():
                         validated_data['keywords'],
                         validated_data['listing_type'],
                         1,  # First page
-                        response_data
+                        response_data,
+                        validated_data.get('sort_by', 'newest')  # Include sort_by
                     )
                     logger.info("Cached valid results with %d listings", len(first_page_results))
                 else:
@@ -301,7 +305,8 @@ async def search():
                 validated_data['max_beds'],
                 validated_data['keywords'],
                 validated_data['listing_type'],
-                1  # First page
+                1,  # First page
+                validated_data.get('sort_by', 'newest')  # Pass sort_by
             )
 
             # Prepare response
@@ -327,7 +332,8 @@ async def search():
                     validated_data['keywords'],
                     validated_data['listing_type'],
                     1,  # First page
-                    response_data
+                    response_data,
+                    validated_data.get('sort_by', 'newest')  # Include sort_by
                 )
                 logger.info("Cached valid results with %d listings", len(listings))
             else:
@@ -495,7 +501,8 @@ async def next_page():
             validated_params['max_beds'],
             validated_params['keywords'],
             validated_params['listing_type'],
-            current_page
+            current_page,
+            validated_params.get('sort_by', 'newest')  # Include sort_by
         )
 
         if cached_results:
@@ -519,6 +526,7 @@ async def next_page():
                 radius="0.0",
                 include_sold=True,
                 listing_type=validated_params['listing_type'],
+                sort_by=validated_params.get('sort_by', 'newest'),  # Pass sort_by parameter
                 page=current_page  # Pass the current page number
             )
             if not url:
@@ -557,7 +565,8 @@ async def next_page():
                 validated_params['keywords'],
                 validated_params['listing_type'],
                 current_page,
-                page_results
+                page_results,
+                validated_params.get('sort_by', 'newest')  # Include sort_by
             )
 
             return jsonify(page_results)
@@ -571,7 +580,8 @@ async def next_page():
                 validated_params['max_beds'],
                 validated_params['keywords'],
                 validated_params['listing_type'],
-                current_page
+                current_page,
+                validated_params.get('sort_by', 'newest')  # Include sort_by
             )
 
             # Format Zoopla results to match the expected structure
@@ -596,7 +606,8 @@ async def next_page():
                     validated_params['keywords'],
                     validated_params['listing_type'],
                     current_page,
-                    response_data
+                    response_data,
+                    validated_params.get('sort_by', 'newest')  # Include sort_by
                 )
                 logger.info("Cached results for page %d", current_page)
             else:
